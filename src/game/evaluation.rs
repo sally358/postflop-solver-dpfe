@@ -22,7 +22,6 @@ impl PostFlopGame {
     ) {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
-
         let half_starting_pot = 0.5 * (self.tree_config.starting_pot as f64);
         
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
@@ -350,6 +349,8 @@ impl PostFlopGame {
     ) {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
+        let half_starting_pot = 0.5 * (self.tree_config.starting_pot as f64);
+        
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
 
         let amount_win = ((half_pot - rake) / self.bunching_num_combinations) as f32;
@@ -367,6 +368,7 @@ impl PostFlopGame {
             let ip_init = self.tree_config.icm_stack_oop;
 
             let half_pot_i32 = half_pot.floor() as i32;
+            let half_starting_pot_i32 = half_starting_pot.floor() as i32;
 
             unsafe {
                 icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32 + half_starting_pot_i32, ip_init - half_pot_i32 + half_starting_pot_i32);
