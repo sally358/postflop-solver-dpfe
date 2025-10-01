@@ -96,11 +96,11 @@ impl PostFlopGame {
             {
                 if folded_player as usize == 0
                 {
-                    payoff = if player == 0 {amount_lose_oop / self.num_combinations} else {amount_win_ip / self.num_combinations};
+                    payoff = if player == 0 {amount_lose_oop} else {amount_win_ip};
                 }
                 else
                 {
-                    payoff = if player == 0 {amount_win_oop / self.num_combinations} else {amount_lose_ip / self.num_combinations};
+                    payoff = if player == 0 {amount_win_oop} else {amount_lose_ip};
                 }
             }
             else
@@ -187,9 +187,9 @@ impl PostFlopGame {
                         - cfreach_minus.get_unchecked(c2 as usize);
                     
                     if player == 0 {
-                        *result.get_unchecked_mut(index as usize) = (amount_win_oop * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_win_oop * cfreach) as f32;
                     } else {
-                        *result.get_unchecked_mut(index as usize) = (amount_win_ip * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_win_ip * cfreach) as f32;
                     }
                 }
             }
@@ -218,9 +218,9 @@ impl PostFlopGame {
                         - cfreach_minus.get_unchecked(c2 as usize);
                     
                     if player == 0 {
-                        *result.get_unchecked_mut(index as usize) = (amount_lose_oop * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_lose_oop * cfreach) as f32;
                     } else {
-                        *result.get_unchecked_mut(index as usize) = (amount_lose_ip * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_lose_ip * cfreach) as f32;
                     }
                 }
             }
