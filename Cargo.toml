@@ -1,7 +1,7 @@
 [package]
 name = "postflop-solver"
-version = "0.1.0"
-authors = ["Wataru Inariba"]
+version = "0.1.1"
+authors = ["Wataru Inariba", "Sally358"]
 edition = "2021"
 description = "An open-source postflop solver for Texas hold'em poker"
 documentation = "https://b-inary.github.io/postflop_solver/postflop_solver/"
