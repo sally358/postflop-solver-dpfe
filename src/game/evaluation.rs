@@ -1,5 +1,6 @@
 use super::*;
 use crate::sliceop::*;
+use crate::game::icm::*;
 use std::mem::MaybeUninit;
 
 #[inline]
@@ -22,8 +23,51 @@ impl PostFlopGame {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
+
+        let icm_on_win_oop: (f64, f64);
+        let icm_on_win_ip: (f64, f64);
+
+        if self.tree_config.is_icm
+        {
+            let oop_init = self.tree_config.icm_stack_oop;
+            let ip_init = self.tree_config.icm_stack_oop;
+
+            let half_pot_i32 = half_pot.floor() as i32;
+
+            icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
+            icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
+        }
+        else
+        {
+            // will literally never be used
+            icm_on_win_oop = (0.0, 0.0);
+            icm_on_win_ip = (0.0, 0.0);
+        }
+        
+        // these two won't be used if ICM but I don't want the code to break so let it be
         let amount_win = (half_pot - rake) / self.num_combinations;
         let amount_lose = -half_pot / self.num_combinations;
+
+        // winning amount stuff
+        let amount_win_oop: f64;
+        let amount_win_ip: f64;
+        let amount_lose_oop: f64;
+        let amount_lose_ip: f64;
+
+        if self.tree_config.is_icm
+        {
+            amount_win_oop = icm_on_win_oop.0 / self.num_combinations;
+            amount_lose_oop = icm_on_win_ip.0 / self.num_combinations;
+            amount_win_ip = icm_on_win_oop.1 / self.num_combinations;
+            amount_lose_ip = icm_on_win_ip.1 / self.num_combinations;
+        }
+        else
+        {
+            amount_win_oop = amount_win;
+            amount_win_ip = amount_win;
+            amount_lose_oop = amount_lose;
+            amount_lose_ip = amount_lose;
+        }
 
         let player_cards = &self.private_cards[player];
         let opponent_cards = &self.private_cards[player ^ 1];
@@ -40,11 +84,28 @@ impl PostFlopGame {
         // someone folded
         if node.player & PLAYER_FOLD_FLAG == PLAYER_FOLD_FLAG {
             let folded_player = node.player & PLAYER_MASK;
-            let payoff = if folded_player as usize != player {
-                amount_win
-            } else {
-                amount_lose
-            };
+
+            let payoff: f64;
+
+            if self.tree_config.is_icm
+            {
+                if folded_player as usize == 0
+                {
+                    payoff = if player == 0 {icm_on_win_ip.0 / self.num_combinations} else {icm_on_win_ip.1 / self.num_combinations};
+                }
+                else
+                {
+                    payoff = if player == 0 {icm_on_win_oop.0 / self.num_combinations} else {icm_on_win_oop.1 / self.num_combinations};
+                }
+            }
+            else
+            {
+                payoff = if folded_player as usize != player {
+                    amount_win
+                } else {
+                    amount_lose
+                };
+            }
 
             let valid_indices = if node.river != NOT_DEALT {
                 &self.valid_indices_river[card_pair_to_index(node.turn, node.river)]
@@ -91,7 +152,7 @@ impl PostFlopGame {
                 }
             }
         }
-        // showdown (optimized for no rake; 2-pass)
+        // showdown (optimized for no rake; 2-pass; checks ICM)
         else if rake == 0.0 {
             let pair_index = card_pair_to_index(node.turn, node.river);
             let hand_strength = &self.hand_strength[pair_index];
@@ -119,7 +180,12 @@ impl PostFlopGame {
                     let cfreach = cfreach_sum
                         - cfreach_minus.get_unchecked(c1 as usize)
                         - cfreach_minus.get_unchecked(c2 as usize);
-                    *result.get_unchecked_mut(index as usize) = (amount_win * cfreach) as f32;
+                    
+                    if player == 0 {
+                        *result.get_unchecked_mut(index as usize) = (amount_win_oop * cfreach) as f32;
+                    } else {
+                        *result.get_unchecked_mut(index as usize) = (amount_win_ip * cfreach) as f32;
+                    }
                 }
             }
 
@@ -145,11 +211,17 @@ impl PostFlopGame {
                     let cfreach = cfreach_sum
                         - cfreach_minus.get_unchecked(c1 as usize)
                         - cfreach_minus.get_unchecked(c2 as usize);
-                    *result.get_unchecked_mut(index as usize) += (amount_lose * cfreach) as f32;
+                    
+                    if player == 0 {
+                        *result.get_unchecked_mut(index as usize) = (amount_lose_oop * cfreach) as f32;
+                    } else {
+                        *result.get_unchecked_mut(index as usize) = (amount_lose_ip * cfreach) as f32;
+                    }
                 }
             }
         }
-        // showdown (raked; 3-pass)
+        
+        // showdown (raked; 3-pass; doesn't check ICM)
         else {
             let amount_tie = -0.5 * rake / self.num_combinations;
             let same_hand_index = &self.same_hand_index[player];
@@ -262,19 +334,58 @@ impl PostFlopGame {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
+
         let amount_win = ((half_pot - rake) / self.bunching_num_combinations) as f32;
         let amount_lose = (-half_pot / self.bunching_num_combinations) as f32;
         let amount_tie = (-0.5 * rake / self.bunching_num_combinations) as f32;
+
+        let icm_on_win_oop: (f64, f64);
+        let icm_on_win_ip: (f64, f64);
+
         let opponent_len = self.private_cards[player ^ 1].len();
+
+        if self.tree_config.is_icm
+        {
+            let oop_init = self.tree_config.icm_stack_oop;
+            let ip_init = self.tree_config.icm_stack_oop;
+
+            let half_pot_i32 = half_pot.floor() as i32;
+
+            icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
+            icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
+        }
+        else
+        {
+            // will literally never be used
+            icm_on_win_oop = (0.0, 0.0);
+            icm_on_win_ip = (0.0, 0.0);
+        }
 
         // someone folded
         if node.player & PLAYER_FOLD_FLAG == PLAYER_FOLD_FLAG {
             let folded_player = node.player & PLAYER_MASK;
-            let payoff = if folded_player as usize != player {
-                amount_win
-            } else {
-                amount_lose
-            };
+            
+            let payoff: f32;
+
+            if self.tree_config.is_icm
+            {
+                if folded_player as usize == 0
+                {
+                    payoff = if player == 0 {icm_on_win_ip.0 / self.bunching_num_combinations} else {icm_on_win_ip.1 / self.bunching_num_combinations} as f32;
+                }
+                else
+                {
+                    payoff = if player == 0 {icm_on_win_oop.0 / self.bunching_num_combinations} else {icm_on_win_oop.1 / self.bunching_num_combinations} as f32;
+                }
+            }
+            else
+            {
+                payoff = if folded_player as usize != player {
+                    amount_win
+                } else {
+                    amount_lose
+                };
+            }
 
             let indices = if node.river != NOT_DEALT {
                 &self.bunching_num_river[player][card_pair_to_index(node.turn, node.river)]
