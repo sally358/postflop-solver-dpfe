@@ -45,6 +45,9 @@ pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit
     let mut init_player_stacks = tree_config.icm_stacks.clone();
     init_player_stacks.push(tree_config.icm_stack_oop);
     init_player_stacks.push(tree_config.icm_stack_ip);
+
+    let chips_pool: i32 = init_player_stacks.iter().sum();
+    
     let init_stacks_prepared = idficate(init_player_stacks);
 
     let mut new_player_stacks = tree_config.icm_stacks.clone();
@@ -53,6 +56,8 @@ pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit
     let new_stacks_prepared = idficate(new_player_stacks);
 
     let payouts = tree_config.icm_payouts.clone();
+
+    let prize_pool: f64 = payouts.iter().sum();
 
     let mut init_tournament_equity: Vec<f64> = vec![0.0; init_stacks_prepared.len()];
     let mut new_tournament_equity: Vec<f64> = vec![0.0; new_stacks_prepared.len()];
@@ -69,15 +74,18 @@ pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit
     let oop_change = oop_new_equity - oop_init_equity;
     let ip_change = ip_new_equity - ip_init_equity;
 
+    let oop_change_tochips = oop_change / prize_pool * (chips_pool as f64);
+    let ip_change_tochips = ip_change / prize_pool * (chips_pool as f64);
+
     
     if ICM_CACHE_HASHMAP.is_none()
     {
         ICM_CACHE_HASHMAP = Some(HashMap::<(i32, i32), (f64, f64)>::new());
     }
 
-    ICM_CACHE_HASHMAP.as_mut().unwrap().insert((oop_exit, ip_exit), (oop_change, ip_change));
+    ICM_CACHE_HASHMAP.as_mut().unwrap().insert((oop_exit, ip_exit), (oop_change_tochips, ip_change_tochips));
 
-    (oop_change, ip_change)
+    (oop_change_tochips, ip_change_tochips)
 }
 
 
@@ -109,6 +117,7 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
 
     value_vector
 }
+
 
 
 
