@@ -30,7 +30,7 @@ impl PostFlopGame {
         if self.tree_config.is_icm
         {
             let oop_init = self.tree_config.icm_stack_oop;
-            let ip_init = self.tree_config.icm_stack_oop;
+            let ip_init = self.tree_config.icm_stack_ip;
 
             let half_pot_i32 = half_pot.floor() as i32;
 
