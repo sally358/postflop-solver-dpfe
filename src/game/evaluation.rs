@@ -58,8 +58,8 @@ impl PostFlopGame {
         {
             amount_win_oop = icm_on_win_oop.0 / self.num_combinations;
             amount_lose_oop = icm_on_win_ip.0 / self.num_combinations;
-            amount_win_ip = icm_on_win_oop.1 / self.num_combinations;
-            amount_lose_ip = icm_on_win_ip.1 / self.num_combinations;
+            amount_win_ip = icm_on_win_ip.1 / self.num_combinations;
+            amount_lose_ip = icm_on_win_oop.1 / self.num_combinations;
         }
         else
         {
