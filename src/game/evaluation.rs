@@ -23,7 +23,7 @@ impl PostFlopGame {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
 
-        let half_starting_pot = 0.5 * self.tree_config.starting_pot;
+        let half_starting_pot = 0.5 * (self.tree_config.starting_pot as f64);
         
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
 
