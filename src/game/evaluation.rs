@@ -40,8 +40,8 @@ impl PostFlopGame {
             let ip_init = self.tree_config.icm_stack_ip + half_starting_pot_i32;
 
             unsafe {
-                icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
-                icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
+                icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32 + half_starting_pot_i32, ip_init - half_pot_i32 + half_starting_pot_i32);
+                icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32 + half_starting_pot_i32, ip_init + half_pot_i32 + half_starting_pot_i32);
             }
         }
         else
@@ -369,8 +369,8 @@ impl PostFlopGame {
             let half_pot_i32 = half_pot.floor() as i32;
 
             unsafe {
-                icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
-                icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
+                icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32 + half_starting_pot_i32, ip_init - half_pot_i32 + half_starting_pot_i32);
+                icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32 + half_starting_pot_i32, ip_init + half_pot_i32 + half_starting_pot_i32);
             }
         }
         else
