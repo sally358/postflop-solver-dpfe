@@ -35,12 +35,12 @@ fn run_tournament_equity(players: &Vec<(usize, i32)>, payouts: &Vec<f64>, equity
 /// Returns a tuple of oop and ip ICM equity changes
 pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) -> (f64, f64)
 {
-    /*
+    
     if !ICM_CACHE_HASHMAP.is_none() && ICM_CACHE_HASHMAP.clone().unwrap().contains_key(&(oop_exit, ip_exit))
     {
         return ICM_CACHE_HASHMAP.clone().unwrap().get(&(oop_exit, ip_exit)).unwrap().clone();
     }
-    */
+    
 
     let mut init_player_stacks = tree_config.icm_stacks.clone();
     init_player_stacks.push(tree_config.icm_stack_oop);
@@ -109,5 +109,6 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
 
     value_vector
 }
+
 
 
