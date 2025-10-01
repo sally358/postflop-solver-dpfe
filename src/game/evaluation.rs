@@ -22,6 +22,9 @@ impl PostFlopGame {
     ) {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
+
+        let half_starting_pot = 0.5 * self.tree_config.starting_pot;
+        
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
 
         let icm_on_win_oop: (f64, f64);
@@ -29,10 +32,12 @@ impl PostFlopGame {
 
         if self.tree_config.is_icm
         {
-            let oop_init = self.tree_config.icm_stack_oop;
-            let ip_init = self.tree_config.icm_stack_ip;
-
             let half_pot_i32 = half_pot.floor() as i32;
+            let half_starting_pot_i32 = half_starting_pot.floor() as i32;
+
+            // doesn't account for the blinds but it's not that big of a deal and too much of a hussle to add
+            let oop_init = self.tree_config.icm_stack_oop + half_starting_pot_i32;
+            let ip_init = self.tree_config.icm_stack_ip + half_starting_pot_i32;
 
             icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
             icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
