@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+
 use crate::TreeConfig;
+
+static mut ICM_CACHE_HASHMAP: Option<HashMap<(i32, i32), (f64, f64)>> = None;
 
 /// Evaluates one step of equities of each player in ICM$ and recursively calls evaluation of the next steps
 fn run_tournament_equity(players: &Vec<(usize, i32)>, payouts: &Vec<f64>, equity_vector: &mut Vec<f64>, fraction: f64)
@@ -29,43 +33,33 @@ fn run_tournament_equity(players: &Vec<(usize, i32)>, payouts: &Vec<f64>, equity
 
 
 /// Returns a tuple of oop and ip ICM equity changes
-pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) -> (f64, f64)
+pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) -> (f64, f64)
 {
+    if !ICM_CACHE_HASHMAP.is_none() && ICM_CACHE_HASHMAP.clone().unwrap().contains_key(&(oop_exit, ip_exit))
+    {
+        unsafe
+        {
+            return ICM_CACHE_HASHMAP.clone().unwrap().get(&(oop_exit, ip_exit)).unwrap().clone();
+        }
+    }
+
     let mut init_player_stacks = tree_config.icm_stacks.clone();
     init_player_stacks.push(tree_config.icm_stack_oop);
     init_player_stacks.push(tree_config.icm_stack_ip);
-
-    let chips_pool: i32 = init_player_stacks.iter().sum();
-    
     let init_stacks_prepared = idficate(init_player_stacks);
-
-    /* DEBUG
-    println!("Init stacks prepared: {:?}", init_stacks_prepared);
-    */
 
     let mut new_player_stacks = tree_config.icm_stacks.clone();
     new_player_stacks.push(oop_exit);
     new_player_stacks.push(ip_exit);
     let new_stacks_prepared = idficate(new_player_stacks);
 
-    /* DEBUG
-    println!("New stacks prepared: {:?}", new_stacks_prepared);
-    */
-
     let payouts = tree_config.icm_payouts.clone();
-
-    let prize_pool: f64 = payouts.iter().sum();
 
     let mut init_tournament_equity: Vec<f64> = vec![0.0; init_stacks_prepared.len()];
     let mut new_tournament_equity: Vec<f64> = vec![0.0; new_stacks_prepared.len()];
 
     run_tournament_equity(&init_stacks_prepared, &payouts, &mut init_tournament_equity, 1.0);
     run_tournament_equity(&new_stacks_prepared, &payouts, &mut new_tournament_equity, 1.0);
-
-    /* DEBUG
-    println!("Init tournament_equity: {:?}", init_tournament_equity);
-    println!("New tournament_equity: {:?}", new_tournament_equity);
-    */
 
     let oop_init_equity = init_tournament_equity[init_tournament_equity.len() - 2];
     let oop_new_equity = new_tournament_equity[new_tournament_equity.len() - 2];
@@ -76,10 +70,15 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     let oop_change = oop_new_equity - oop_init_equity;
     let ip_change = ip_new_equity - ip_init_equity;
 
-    let oop_change_tochips = oop_change / prize_pool * (chips_pool as f64);
-    let ip_change_tochips = ip_change / prize_pool * (chips_pool as f64);
+    
+    if ICM_CACHE_HASHMAP.is_none()
+    {
+        ICM_CACHE_HASHMAP = Some(HashMap::<(i32, i32), (f64, f64)>::new());
+    }
 
-    (oop_change_tochips, ip_change_tochips)
+    ICM_CACHE_HASHMAP.as_mut().unwrap().insert((oop_exit, ip_exit), (oop_change, ip_change));
+
+    (oop_change, ip_change)
 }
 
 
@@ -110,8 +109,4 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
     }
 
     value_vector
-
 }
-
-
-
