@@ -37,10 +37,7 @@ pub unsafe fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit
 {
     if !ICM_CACHE_HASHMAP.is_none() && ICM_CACHE_HASHMAP.clone().unwrap().contains_key(&(oop_exit, ip_exit))
     {
-        unsafe
-        {
-            return ICM_CACHE_HASHMAP.clone().unwrap().get(&(oop_exit, ip_exit)).unwrap().clone();
-        }
+        return ICM_CACHE_HASHMAP.clone().unwrap().get(&(oop_exit, ip_exit)).unwrap().clone();
     }
 
     let mut init_player_stacks = tree_config.icm_stacks.clone();
@@ -110,3 +107,4 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
 
     value_vector
 }
+
