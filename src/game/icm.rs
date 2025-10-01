@@ -36,14 +36,18 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     init_player_stacks.push(tree_config.icm_stack_ip);
     let init_stacks_prepared = idficate(init_player_stacks);
 
+    /* DEBUG
     println!("Init stacks prepared: {:?}", init_stacks_prepared);
+    */
 
     let mut new_player_stacks = tree_config.icm_stacks.clone();
     new_player_stacks.push(oop_exit);
     new_player_stacks.push(ip_exit);
     let new_stacks_prepared = idficate(new_player_stacks);
 
+    /* DEBUG
     println!("New stacks prepared: {:?}", new_stacks_prepared);
+    */
 
     let payouts = tree_config.icm_payouts.clone();
 
@@ -53,8 +57,10 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     run_tournament_equity(&init_stacks_prepared, &payouts, &mut init_tournament_equity, 1.0);
     run_tournament_equity(&new_stacks_prepared, &payouts, &mut new_tournament_equity, 1.0);
 
+    /* DEBUG
     println!("Init tournament_equity: {:?}", init_tournament_equity);
     println!("New tournament_equity: {:?}", new_tournament_equity);
+    */
 
     let oop_init_equity = init_tournament_equity[init_tournament_equity.len() - 2];
     let oop_new_equity = new_tournament_equity[new_tournament_equity.len() - 2];
@@ -98,3 +104,4 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
     value_vector
 
 }
+
