@@ -68,7 +68,8 @@ impl PostFlopGame {
             amount_lose_oop = amount_lose;
             amount_lose_ip = amount_lose;
         }
-        
+
+        /* DEBUG (TO BE REMOVED)
         println!("AWO: {}", amount_win_oop);
         println!("AWI: {}", amount_win_ip);
         println!("ALO: {}", amount_lose_oop);
@@ -76,6 +77,7 @@ impl PostFlopGame {
 
         println!("Standard W: {}", amount_win);
         println!("Standard L: {}", amount_lose);
+        */
 
         let player_cards = &self.private_cards[player];
         let opponent_cards = &self.private_cards[player ^ 1];
