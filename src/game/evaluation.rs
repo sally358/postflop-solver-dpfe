@@ -69,6 +69,11 @@ impl PostFlopGame {
             amount_lose_ip = amount_lose;
         }
 
+        println!("AWO: {}", amount_win_oop);
+        println!("AWI: {}", amount_win_ip);
+        println!("ALO: {}", amount_lose_oop);
+        println!("ALI: {}", amount_lose_ip);
+
         let player_cards = &self.private_cards[player];
         let opponent_cards = &self.private_cards[player ^ 1];
 
