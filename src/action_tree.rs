@@ -91,11 +91,32 @@ pub struct TreeConfig {
     /// Initial effective stack. Must be greater than `0`.
     pub effective_stack: i32,
 
+
+
+    /// True if the solution is ICM, false if it is ChipEV
+    pub is_icm: bool,
+
+    /// if is_icm is true: the OOP stack size
+    pub icm_stack_oop: i32,
+
+    /// if is_icm is true: the IP stack size
+    pub icm_stack_ip: i32,
+
+    /// if is_icm is true: the payout structure of the tournament
+    pub icm_payouts: Vec<f64>,
+
+    /// if is_icm is true: the stack sizes of players NOT INCLUDING the OOP and IP
+    pub icm_stacks: Vec<i32>,
+
+
+
     /// Rake rate. Must be between `0.0` and `1.0`, inclusive.
     pub rake_rate: f64,
 
     /// Rake cap. Must be non-negative.
     pub rake_cap: f64,
+
+
 
     /// Bet size options of each player for the flop.
     pub flop_bet_sizes: [BetSizeOptions; 2],
@@ -111,6 +132,8 @@ pub struct TreeConfig {
 
     /// Donk size options for the river (set `None` to use default sizes).
     pub river_donk_sizes: Option<DonkSizeOptions>,
+
+
 
     /// Add all-in action if the ratio of maximum bet size to the pot is below or equal to this
     /// value (set `0.0` to disable).
