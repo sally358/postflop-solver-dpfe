@@ -34,6 +34,9 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     let mut init_player_stacks = tree_config.icm_stacks.clone();
     init_player_stacks.push(tree_config.icm_stack_oop);
     init_player_stacks.push(tree_config.icm_stack_ip);
+
+    let chips_pool = init_player_stacks.iter().sum();
+    
     let init_stacks_prepared = idficate(init_player_stacks);
 
     /* DEBUG
@@ -50,6 +53,8 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     */
 
     let payouts = tree_config.icm_payouts.clone();
+
+    let prize_pool = payouts.iter().sum();
 
     let mut init_tournament_equity: Vec<f64> = vec![0.0; init_stacks_prepared.len()];
     let mut new_tournament_equity: Vec<f64> = vec![0.0; new_stacks_prepared.len()];
@@ -71,7 +76,10 @@ pub fn get_changed_value(tree_config: &TreeConfig, oop_exit: i32, ip_exit: i32) 
     let oop_change = oop_new_equity - oop_init_equity;
     let ip_change = ip_new_equity - ip_init_equity;
 
-    (oop_change, ip_change)
+    let oop_change_tochips = oop_change / prize_pool * chips_pool;
+    let ip_change_tochips = ip_change / prize_pool * chips_pool;
+
+    (oop_change_tochips, ip_change_tochips)
 }
 
 
@@ -104,4 +112,5 @@ fn untuple(vector: &Vec<(usize, i32)>) -> Vec<i32>
     value_vector
 
 }
+
 
