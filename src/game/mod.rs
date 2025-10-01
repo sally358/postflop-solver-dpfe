@@ -2,6 +2,7 @@ mod base;
 mod evaluation;
 mod interpreter;
 mod node;
+mod icm;
 
 #[cfg(feature = "bincode")]
 mod serialization;
