@@ -27,6 +27,8 @@ impl PostFlopGame {
         let icm_on_win_oop: (f64, f64);
         let icm_on_win_ip: (f64, f64);
 
+        panic!("i tested");
+
         if self.tree_config.is_icm
         {
             let oop_init = self.tree_config.icm_stack_oop;
