@@ -91,11 +91,11 @@ impl PostFlopGame {
             {
                 if folded_player as usize == 0
                 {
-                    payoff = if player == 0 {icm_on_win_ip.0 / self.num_combinations} else {icm_on_win_ip.1 / self.num_combinations};
+                    payoff = if player == 0 {amount_lose_oop / self.num_combinations} else {amount_win_ip / self.num_combinations};
                 }
                 else
                 {
-                    payoff = if player == 0 {icm_on_win_oop.0 / self.num_combinations} else {icm_on_win_oop.1 / self.num_combinations};
+                    payoff = if player == 0 {amount_win_oop / self.num_combinations} else {amount_lose_ip / self.num_combinations};
                 }
             }
             else
