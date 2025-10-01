@@ -22,6 +22,9 @@ impl PostFlopGame {
     ) {
         let pot = (self.tree_config.starting_pot + 2 * node.amount) as f64;
         let half_pot = 0.5 * pot;
+
+        let half_starting_pot = 0.5 * (self.tree_config.starting_pot as f64);
+        
         let rake = min(pot * self.tree_config.rake_rate, self.tree_config.rake_cap);
 
         let icm_on_win_oop: (f64, f64);
@@ -29,10 +32,12 @@ impl PostFlopGame {
 
         if self.tree_config.is_icm
         {
-            let oop_init = self.tree_config.icm_stack_oop;
-            let ip_init = self.tree_config.icm_stack_oop;
-
             let half_pot_i32 = half_pot.floor() as i32;
+            let half_starting_pot_i32 = half_starting_pot.floor() as i32;
+
+            // doesn't account for the blinds but it's not that big of a deal and too much of a hussle to add
+            let oop_init = self.tree_config.icm_stack_oop + half_starting_pot_i32;
+            let ip_init = self.tree_config.icm_stack_ip + half_starting_pot_i32;
 
             unsafe {
                 icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
@@ -60,8 +65,8 @@ impl PostFlopGame {
         {
             amount_win_oop = icm_on_win_oop.0 / self.num_combinations;
             amount_lose_oop = icm_on_win_ip.0 / self.num_combinations;
-            amount_win_ip = icm_on_win_oop.1 / self.num_combinations;
-            amount_lose_ip = icm_on_win_ip.1 / self.num_combinations;
+            amount_win_ip = icm_on_win_ip.1 / self.num_combinations;
+            amount_lose_ip = icm_on_win_oop.1 / self.num_combinations;
         }
         else
         {
@@ -70,6 +75,16 @@ impl PostFlopGame {
             amount_lose_oop = amount_lose;
             amount_lose_ip = amount_lose;
         }
+
+        /* DEBUG (TO BE REMOVED)
+        println!("AWO: {}", amount_win_oop);
+        println!("AWI: {}", amount_win_ip);
+        println!("ALO: {}", amount_lose_oop);
+        println!("ALI: {}", amount_lose_ip);
+
+        println!("Standard W: {}", amount_win);
+        println!("Standard L: {}", amount_lose);
+        */
 
         let player_cards = &self.private_cards[player];
         let opponent_cards = &self.private_cards[player ^ 1];
@@ -93,11 +108,11 @@ impl PostFlopGame {
             {
                 if folded_player as usize == 0
                 {
-                    payoff = if player == 0 {icm_on_win_ip.0 / self.num_combinations} else {icm_on_win_ip.1 / self.num_combinations};
+                    payoff = if player == 0 {amount_lose_oop} else {amount_win_ip};
                 }
                 else
                 {
-                    payoff = if player == 0 {icm_on_win_oop.0 / self.num_combinations} else {icm_on_win_oop.1 / self.num_combinations};
+                    payoff = if player == 0 {amount_win_oop} else {amount_lose_ip};
                 }
             }
             else
@@ -184,9 +199,9 @@ impl PostFlopGame {
                         - cfreach_minus.get_unchecked(c2 as usize);
                     
                     if player == 0 {
-                        *result.get_unchecked_mut(index as usize) = (amount_win_oop * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_win_oop * cfreach) as f32;
                     } else {
-                        *result.get_unchecked_mut(index as usize) = (amount_win_ip * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_win_ip * cfreach) as f32;
                     }
                 }
             }
@@ -215,9 +230,9 @@ impl PostFlopGame {
                         - cfreach_minus.get_unchecked(c2 as usize);
                     
                     if player == 0 {
-                        *result.get_unchecked_mut(index as usize) = (amount_lose_oop * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_lose_oop * cfreach) as f32;
                     } else {
-                        *result.get_unchecked_mut(index as usize) = (amount_lose_ip * cfreach) as f32;
+                        *result.get_unchecked_mut(index as usize) += (amount_lose_ip * cfreach) as f32;
                     }
                 }
             }
@@ -352,6 +367,7 @@ impl PostFlopGame {
             let ip_init = self.tree_config.icm_stack_oop;
 
             let half_pot_i32 = half_pot.floor() as i32;
+
             unsafe {
                 icm_on_win_oop = get_changed_value(&self.tree_config, oop_init + half_pot_i32, ip_init - half_pot_i32);
                 icm_on_win_ip = get_changed_value(&self.tree_config, oop_init - half_pot_i32, ip_init + half_pot_i32);
