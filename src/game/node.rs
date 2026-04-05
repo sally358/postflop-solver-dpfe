@@ -212,6 +212,8 @@ impl Default for PostFlopNode {
             player: PLAYER_OOP,
             turn: NOT_DEALT,
             river: NOT_DEALT,
+            end_limit: None,
+            end_range: None,
             is_locked: false,
             amount: 0,
             children_offset: 0,
