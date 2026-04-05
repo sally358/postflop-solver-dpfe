@@ -36,6 +36,12 @@ fn derank(cards: &Vec<usize>) -> Vec<usize>
     deranked
 }
 
+/*
+
+MADE HAND CHECK TERRITORY
+
+*/
+
 fn straight_data(hand: &MarkedHand) -> (i8, u8)
 {
     let full_hand = get_full_hand(hand);
@@ -177,4 +183,114 @@ fn straight_data(hand: &MarkedHand) -> (i8, u8)
     }
 
     result
+}
+
+fn flush_data (hand: &MarkedHand) -> (i8, u8)
+{
+    let full_hand = get_full_hand(hand);
+    let mut results = (0, 0);
+
+    suits: [usize; 4] = [0, 0, 0, 0];
+
+    for card in full_hand
+    {
+        suits [card % 4] += 1;
+    }
+    
+    let mysuit: usize;
+
+    for i in 0..4
+    {
+        if suit[i] >= 5
+        {
+            results.0 = 1;
+            mysuit = i;
+            break;
+        }
+    }
+
+    if results.0 == 0
+    {
+        results = (-1, 0);
+        return results;
+    }
+
+    let suited_ranks: Vec<usize> = vec![];
+
+    for card in full_hand
+    {
+        if card % 4 == mysuit
+        {
+            let card_rank = card >> 2;
+            
+            if suited_ranks.len() < 5
+            {
+                suited_ranks.push(card_rank);
+            }
+            else
+            {
+                if card > suited_ranks[0]
+                {
+                    suited_ranks.remove(0);
+                    suited_ranks.push(card_rank);
+                }
+            }
+
+            suited_cards.sort()
+        }
+    }
+
+    let board_suited_ranks: Vec<usize> = vec![];
+
+    for card in hand.board
+    {
+        if card % 4 == mysuit
+        {
+            let card_rank = card >> 2;
+            
+            board_suited_ranks.push(card_rank);
+        }
+    }
+
+    let key_card_1: usize = 0;
+    let key_card_2: usize = 0;
+
+    if !board_suited_ranks.contains(&12)
+    {
+        key_card_1 = 12;
+    }
+    if !board_suited_ranks.contains(&11)
+    {
+        if key_card_1 == 0 {key_card_1 = 11;} else {key_card_2 = 11;}
+    }
+    if !board_suited_ranks.contains(&10)
+    {
+        if key_card_1 == 0 {key_card_1 = 10;} else if key_card_2 == 0 {key_card_2 = 10;}
+    }
+    if !board_suited_ranks.contains(&9)
+    {
+        if key_card_1 == 0 {key_card_1 = 9;} else if key_card_2 == 0 {key_card_2 = 9;}
+    }
+    if !board_suited_ranks.contains(&8)
+    {
+        if key_card_1 == 0 {key_card_1 = 8;} else if key_card_2 == 0 {key_card_2 = 8;}
+    }
+
+    if key_card_1 == 0 {results = (-1, 0); return results}
+    if key_card_2 == 0 {key_card_2 = 13;}
+
+    if suited_ranks.contains(&key_card_1)
+    {
+        results.1 = 2;
+    }
+    else if suited_ranks.contains(&key_card_2)
+    {
+        results.1 = 1;
+    }
+    else
+    {
+        results.1 = 0;
+    }
+    
+    results
 }
