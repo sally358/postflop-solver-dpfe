@@ -322,7 +322,14 @@ impl ActionTree {
     #[inline]
     pub fn push_range_lock(&mut self, line: &[Action], lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
         let mut vine = line.to_vec();
-        let mut current_node = self.root.lock();
+
+        let mut current_node: &mut ActionTreeNode;
+
+        unsafe
+        {
+            current_node = self.root.yoink();
+        }
+         
 
         if vine.len() == 0
         {
@@ -335,8 +342,14 @@ impl ActionTree {
             vine.remove(0);
             
             let search_result = unpackage_actions(&current_node.actions).binary_search(&action);
+            
             if search_result.is_err() {
                 return Err(format!("Bro, this {action:?} is NOT a real action."));
+            }
+
+            unsafe // nothing is truly safe in the real world
+            {
+                current_node = current_node.children[search_result.unwrap()].yoink();
             }
         }
         
@@ -369,13 +382,18 @@ impl ActionTree {
     #[inline]
     pub fn pull_range_lock(&mut self, line: &[Action]) -> (Option<[f32; 13 * 13]>, Option<[i8; 13 * 13]>) {
         let mut vine = line.to_vec();
-        let mut current_node = self.root.lock();
 
-        let 
+        let mut current_node: &mut ActionTreeNode;
+
+        unsafe
+        {
+            current_node = self.root.yoink();
+        }
+         
 
         if vine.len() == 0
         {
-            panic!("Empty tree in pull_range_lock! How did we even get here?!".to_owned());
+            panic!("Empty tree in pull_range_lock! How did we even get here?!");
         }
         
         while vine.len() > 1
@@ -385,12 +403,16 @@ impl ActionTree {
             
             let search_result = unpackage_actions(&current_node.actions).binary_search(&action);
             if search_result.is_err() {
-                panic!(format!("Bro, this {action:?} is NOT a real action. Can't pull that!"));
+                panic!("Bro, this is NOT a real action. Can't pull that!");
+            }
+
+            unsafe // nothing is truly safe in the real world
+            {
+                current_node = current_node.children[search_result.unwrap()].yoink();
             }
         }
         
         let action = vine[0];
-        let mut success = false;
 
         for i in 0..current_node.actions.len()
         {
@@ -400,10 +422,7 @@ impl ActionTree {
             }
         }
         
-        if !success
-        {
-            panic!("I'm too lazy to not panic this stuff".to_owned());
-        }
+        panic!("I'm too lazy to not panic this stuff");
     }
 
     /// Moves back to the root node.
