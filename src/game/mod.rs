@@ -3,6 +3,7 @@ mod evaluation;
 mod interpreter;
 mod node;
 mod icm;
+mod node_eval;
 
 #[cfg(feature = "bincode")]
 mod serialization;
@@ -126,6 +127,11 @@ pub struct PostFlopNode {
     turn: Card,
     river: Card,
     is_locked: bool,
+
+    // end_x fields are the actual range management data used for solving
+    end_range: Option<[f32; 52 * 51 / 2]>,
+    end_limit: Option<[i8; 52 * 51 / 2]>,
+
     amount: i32,
     children_offset: u32,
     num_children: u16,
