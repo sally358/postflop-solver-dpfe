@@ -783,9 +783,9 @@ impl PostFlopGame {
         node.num_children = action_node.children.len() as u16;
         *base += node.num_children as usize;
 
-        for (child, p_action) in node.children().iter().zip(action_node.actions.iter()) {
+        for (child, action) in node.children().iter().zip(action_node.actions.iter()) {
             let mut child = child.lock();
-            child.prev_action = *p_action.action;
+            child.prev_action = action;
             child.turn = node.turn;
             child.river = node.river;
         }
