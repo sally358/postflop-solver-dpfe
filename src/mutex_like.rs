@@ -49,6 +49,17 @@ impl<T> MutexLike<T> {
             data: UnsafeCell::new(val),
         }
     }
+
+    #[inline]
+    pub fn into_inner(self) -> T { // I HATE MUTEX LIKES I HATE MUTEX LIKES
+        self.data.into_inner()
+    }
+
+    #[inline]
+    pub unsafe fn yoink<'a>(&mut self) -> &'a mut T { // I HATE MUTEX LIKES I HATE MUTEX LIKES
+        &mut (*self.data.get())
+    }
+
 }
 
 impl<T: ?Sized> MutexLike<T> {
