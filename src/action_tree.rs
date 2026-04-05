@@ -43,6 +43,19 @@ pub enum Action {
     Chance(Card),
 }
 
+/// Action packaged with all sorts of nodelocking stuff
+#[cfg_attr(feature = "bincode", derive(Decode, Encode))]
+pub struct PackagedAction {
+    pub(crate) action: Action,
+
+    // good luck deciphering these fields. Options are nullified on chance nodes or terminal nodes (how the hell are we even supposed to lock them in the first place?) or on non-locked nodes
+
+    // lock_x fields are pre-setup data for range management from the tauri app. They are not used when solving, only to setup the end_x fields for the solver
+    pub(crate) lock_range: Option<[f32; 13 * 13]>,
+    pub(crate) lock_limit: Option<[i8; 13 * 13]>,
+    pub(crate) lock_rules: Option<Vec<((u8, u8, Option<u8>), u8, i8, i32)>>, // (criterion group, criterion, specification), percentage, limitation, priority
+}
+
 /// An enum representing the board state.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
@@ -175,8 +188,24 @@ pub(crate) struct ActionTreeNode {
     pub(crate) player: u8,
     pub(crate) board_state: BoardState,
     pub(crate) amount: i32,
-    pub(crate) actions: Vec<Action>,
+    pub(crate) actions: Vec<PackagedAction>,
     pub(crate) children: Vec<MutexLike<ActionTreeNode>>,
+}
+
+// a silly function to extract the actions from the packaged actions
+pub fn unpackage_actions(actions: &[PackagedAction]) -> Vec<Action> {
+    actions.iter().map(|x| x.action).collect()
+}
+
+// a very serious function to package an action with nulled options
+pub fn package_my_action(action: Action) -> PackagedAction
+{
+    PackagedAction {
+        action,
+        lock_range: None,
+        lock_limit: None,
+        lock_rules: None
+    }
 }
 
 struct BuildTreeInfo {
@@ -324,7 +353,7 @@ impl ActionTree {
     ///
     /// If the current node is a chance node, returns possible actions after the chance event.
     #[inline]
-    pub fn available_actions(&self) -> &[Action] {
+    pub fn available_actions(&self) -> &Vec<PackagedAction> {
         &self.current_node_skip_chance().actions
     }
 
@@ -336,7 +365,7 @@ impl ActionTree {
     #[inline]
     pub fn play(&mut self, action: Action) -> Result<(), String> {
         let node = self.current_node_skip_chance();
-        if !node.actions.contains(&action) {
+        if !unpackage_actions(&node.actions).contains(&action) {
             return Err(format!("Action `{action:?}` is not available"));
         }
 
@@ -415,7 +444,7 @@ impl ActionTree {
                 while (*node).is_chance() {
                     node = &*(*node).children[0].lock();
                 }
-                let index = (*node).actions.iter().position(|x| x == action).unwrap();
+                let index = unpackage_actions(&(*node).actions).iter().position(|x| x == action).unwrap();
                 node = &*(*node).children[index].lock();
             }
             &*node
@@ -522,7 +551,7 @@ impl ActionTree {
                 (true, _) => PLAYER_TERMINAL_FLAG,
             };
 
-            node.actions.push(Action::Chance(0));
+            node.actions.push(package_my_action(Action::Chance(0)));
             node.children.push(MutexLike::new(ActionTreeNode {
                 player: next_player,
                 board_state: next_state,
@@ -536,10 +565,10 @@ impl ActionTree {
             );
         } else {
             self.push_actions(node, &info);
-            for (action, child) in node.actions.iter().zip(node.children.iter()) {
+            for (p_action, child) in node.actions.iter().zip(node.children.iter()) {
                 self.build_tree_recursive(
                     &mut child.lock(),
-                    info.create_next(node.player, *action),
+                    info.create_next(node.player, (*p_action).action), // i hate how action.action looks but i also don't want to rewrite the whole code just for this
                 );
             }
         }
@@ -749,7 +778,7 @@ impl ActionTree {
                 _ => panic!("Unexpected action: {action:?}"),
             };
 
-            node.actions.push(action);
+            node.actions.push(package_my_action(action));
             node.children.push(MutexLike::new(ActionTreeNode {
                 player: next_player,
                 board_state: node.board_state,
@@ -775,7 +804,7 @@ impl ActionTree {
         } else if node.is_chance() {
             Self::invalid_terminals_recursive(&node.children[0].lock(), result, line)
         } else {
-            for (&action, child) in node.actions.iter().zip(node.children.iter()) {
+            for (&action, child) in unpackage_actions(&node.actions).iter().zip(node.children.iter()) {
                 line.push(action);
                 Self::invalid_terminals_recursive(&child.lock(), result, line);
                 line.pop();
@@ -809,7 +838,7 @@ impl ActionTree {
         }
 
         let action = line[0];
-        let search_result = node.actions.binary_search(&action);
+        let search_result = unpackage_actions(&node.actions).binary_search(&action);
 
         let player = node.player;
         let opponent = node.player ^ 1;
@@ -911,7 +940,7 @@ impl ActionTree {
         };
 
         let index = search_result.unwrap_err();
-        node.actions.insert(index, action);
+        node.actions.insert(index, package_my_action(action));
         node.children.insert(
             index,
             MutexLike::new(ActionTreeNode {
@@ -948,7 +977,7 @@ impl ActionTree {
         }
 
         let action = line[0];
-        let search_result = node.actions.binary_search(&action);
+        let search_result = unpackage_actions(&node.actions).binary_search(&action);
         if search_result.is_err() {
             return Err(format!("Action does not exist: {action:?}"));
         }
@@ -987,7 +1016,7 @@ impl ActionTree {
         }
 
         let action = line[0];
-        let search_result = node.actions.binary_search(&action);
+        let search_result = unpackage_actions(&node.actions).binary_search(&action);
         if search_result.is_err() {
             panic!("Action does not exist: {action:?}");
         }
