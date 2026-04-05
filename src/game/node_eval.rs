@@ -190,18 +190,18 @@ fn flush_data (hand: &MarkedHand) -> (i8, u8)
     let full_hand = get_full_hand(hand);
     let mut results = (0, 0);
 
-    suits: [usize; 4] = [0, 0, 0, 0];
+    let mut suits: [usize; 4] = [0, 0, 0, 0];
 
-    for card in full_hand
+    for card in full_hand.clone()
     {
         suits [card % 4] += 1;
     }
     
-    let mysuit: usize;
+    let mut mysuit: usize = 0;
 
     for i in 0..4
     {
-        if suit[i] >= 5
+        if suits[i] >= 5
         {
             results.0 = 1;
             mysuit = i;
@@ -215,9 +215,9 @@ fn flush_data (hand: &MarkedHand) -> (i8, u8)
         return results;
     }
 
-    let suited_ranks: Vec<usize> = vec![];
+    let mut suited_ranks: Vec<usize> = vec![];
 
-    for card in full_hand
+    for card in full_hand.clone()
     {
         if card % 4 == mysuit
         {
@@ -236,13 +236,14 @@ fn flush_data (hand: &MarkedHand) -> (i8, u8)
                 }
             }
 
-            suited_cards.sort()
+            suited_ranks.sort()
         }
     }
 
-    let board_suited_ranks: Vec<usize> = vec![];
+    let mut board_suited_ranks: Vec<usize> = vec![];
+    let board_but_worse = hand.board.clone();
 
-    for card in hand.board
+    for card in board_but_worse
     {
         if card % 4 == mysuit
         {
@@ -252,8 +253,8 @@ fn flush_data (hand: &MarkedHand) -> (i8, u8)
         }
     }
 
-    let key_card_1: usize = 0;
-    let key_card_2: usize = 0;
+    let mut key_card_1: usize = 0;
+    let mut key_card_2: usize = 0;
 
     if !board_suited_ranks.contains(&12)
     {
