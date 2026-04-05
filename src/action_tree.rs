@@ -324,11 +324,11 @@ impl ActionTree {
     #[inline]
     pub fn push_range_lock(&mut self, line: &[Action], lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
         let mut vine = line.to_vec();
-        let mut current_node = self.root;
+        let mut current_node = self.root.lock();
 
         if vine.len() == 0
         {
-            return Err("Empty tree in push_range_lock! How did we even get here?!");
+            return Err("Empty tree in push_range_lock! How did we even get here?!".to_owned());
         }
         
         while vine.len() > 1
@@ -347,10 +347,10 @@ impl ActionTree {
 
         for i in 0..current_node.actions.len()
         {
-            if p_action.actions[i].action == action
+            if current_node.actions[i].action == action
             {
-                p_action.actions[i].lock_range = lock_range;
-                p_action.actions[i].lock_limit = lock_limit;
+                current_node.actions[i].lock_range = Some(lock_range);
+                current_node.actions[i].lock_limit = Some(lock_limit);
 
                 success = true;
             }
@@ -358,7 +358,7 @@ impl ActionTree {
         
         if !success
         {
-            return Err("Can't find shit in this garbage, I quit.");
+            return Err("Can't find shit in this garbage, I quit.".to_owned());
         }
             
         Ok(())
