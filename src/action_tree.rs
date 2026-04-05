@@ -319,8 +319,6 @@ impl ActionTree {
     ///
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
-    /// - If the current node is removed by this method, the current node is moved to the nearest
-    ///   ancestor node that is not removed.
     #[inline]
     pub fn push_range_lock(&mut self, line: &[Action], lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
         let mut vine = line.to_vec();
@@ -362,6 +360,50 @@ impl ActionTree {
         }
             
         Ok(())
+    }
+
+    /// Should technically pull a range lock mask and limits from a node
+    ///
+    /// - `line` must exist in the current tree.
+    /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
+    #[inline]
+    pub fn pull_range_lock(&mut self, line: &[Action]) -> (Option<[f32; 13 * 13]>, Option<[i8; 13 * 13]>) {
+        let mut vine = line.to_vec();
+        let mut current_node = self.root.lock();
+
+        let 
+
+        if vine.len() == 0
+        {
+            panic!("Empty tree in pull_range_lock! How did we even get here?!".to_owned());
+        }
+        
+        while vine.len() > 1
+        {
+            let action = vine[0];
+            vine.remove(0);
+            
+            let search_result = unpackage_actions(&current_node.actions).binary_search(&action);
+            if search_result.is_err() {
+                panic!(format!("Bro, this {action:?} is NOT a real action. Can't pull that!"));
+            }
+        }
+        
+        let action = vine[0];
+        let mut success = false;
+
+        for i in 0..current_node.actions.len()
+        {
+            if current_node.actions[i].action == action
+            {
+                return (current_node.actions[i].lock_range, current_node.actions[i].lock_limit);
+            }
+        }
+        
+        if !success
+        {
+            panic!("I'm too lazy to not panic this stuff".to_owned());
+        }
     }
 
     /// Moves back to the root node.
@@ -471,16 +513,26 @@ impl ActionTree {
         self.remove_line(&history)
     }
 
-    /// Removes the current node.
+    /// Pushes range masks onto the current line.
     ///
-    /// Internally, this method calls [`remove_line`] with the current action history. See
-    /// [`remove_line`] for the details.
-    ///
-    /// [`remove_line`]: #method.remove_line
+    /// Internally, this method calls [`push_range_lock`] with the current action history. See
+    /// [`push_range_lock`] for the details.
     #[inline]
-    pub fn push_range_lock_on_current_node(&mut self, lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
+    pub fn push_range_lock_on_current_node(&mut self, lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> 
+    {
         let history = self.history.clone();
         self.push_range_lock(&history, lock_range, lock_limit)
+    }
+
+    /// Pulls range masks from the current line.
+    ///
+    /// Internally, this method calls [`pull_range_lock`] with the current action history, which is only used in this specific method. Optimal? 100%. See
+    /// [`pull_range_lock`] for the details.
+    #[inline]
+    pub fn pull_range_lock_from_current_node(&mut self) ->  (Option<[f32; 13 * 13]>, Option<[i8; 13 * 13]>) 
+    {
+        let history = self.history.clone();
+        self.pull_range_lock(&history)
     }
 
     /// Returns the total bet amount of each player (OOP, IP).
