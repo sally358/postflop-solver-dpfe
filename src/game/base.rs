@@ -1448,3 +1448,67 @@ impl PostFlopGame {
         }
     }
 }
+
+fn apply_nodelocks (node: PostFlopNode, p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
+{
+    let mut end_range: [f32; 52*51 / 2] = [0.0; 52*51 / 2];
+    let mut end_limit: [i8; 52*51 / 2] = [1; 52*51 / 2];
+
+    if !p_actions.lock_rules.is_none() 
+    {
+        let mut rules = p_actions.lock_rules.unwrap().clone();
+
+        rules.sort_by(|a, b| a.3.cmp(&b.3));
+
+        for rule in rules
+        {
+            
+        }
+    }
+    
+    fn apply_range (p_actions: PackagedAction, end_range: &mut [f32; 52*51 / 2], end_limit: &mut [i8; 52*51 / 2])
+    {
+        if !p_actions.lock_range.is_none() 
+        {
+            let lock_range = p_actions.lock_range.unwrap().clone();
+
+            for i in 0..13 { for j in 0..13
+            {
+                if i > j
+                {
+                    for suit_i in 0..4 { for suit_j in 0..4
+                    {
+                        // these are some nested loops aren't they
+
+                        if suit_i == suit_j
+                        {
+                            continue
+                        }
+                        else
+                        {
+                            let card1 = i * 4 + suit_i;
+                            let card2 = j * 4 + suit_j;
+
+                            let index = card_pair_to_index(card1 as Card, card2 as Card);
+                            end_range[index] = lock_range[i * 13 + j];
+                        }
+                    }}
+                }
+
+                let index = card_pair_to_index(i as Card, j as Card);
+                end_range[index] = lock_range[i * 13 + j];
+            } }
+        
+        }
+    }
+}
+
+// hand eval
+
+fn evaluate_rank (hand: (Card, Card), board: Vec<Card>)
+{
+    let mut cards = vec![hand.0, hand.1];
+    cards.extend(board);
+}
+
+// fn evaluate_flush
