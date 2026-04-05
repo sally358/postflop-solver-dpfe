@@ -315,6 +315,55 @@ impl ActionTree {
         Ok(())
     }
 
+    /// Should technically push a range lock mask on an action in a tree
+    ///
+    /// - `line` must exist in the current tree.
+    /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
+    /// - If the current node is removed by this method, the current node is moved to the nearest
+    ///   ancestor node that is not removed.
+    #[inline]
+    pub fn push_range_lock(&mut self, line: &[Action], lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
+        let mut vine = line.to_vec();
+        let mut current_node = self.root;
+
+        if vine.len() == 0
+        {
+            return Err("Empty tree in push_range_lock! How did we even get here?!");
+        }
+        
+        while vine.len() > 1
+        {
+            let action = vine[0];
+            vine.remove(0);
+            
+            let search_result = unpackage_actions(&current_node.actions).binary_search(&action);
+            if search_result.is_err() {
+                return Err(format!("Bro, this {action:?} is NOT a real action."));
+            }
+        }
+        
+        let action = vine[0];
+        let mut success = false;
+
+        for i in 0..current_node.actions.len()
+        {
+            if p_action.actions[i].action == action
+            {
+                p_action.actions[i].lock_range = lock_range;
+                p_action.actions[i].lock_limit = lock_limit;
+
+                success = true;
+            }
+        }
+        
+        if !success
+        {
+            return Err("Can't find shit in this garbage, I quit.");
+        }
+            
+        Ok(())
+    }
+
     /// Moves back to the root node.
     #[inline]
     pub fn back_to_root(&mut self) {
@@ -420,6 +469,18 @@ impl ActionTree {
     pub fn remove_current_node(&mut self) -> Result<(), String> {
         let history = self.history.clone();
         self.remove_line(&history)
+    }
+
+    /// Removes the current node.
+    ///
+    /// Internally, this method calls [`remove_line`] with the current action history. See
+    /// [`remove_line`] for the details.
+    ///
+    /// [`remove_line`]: #method.remove_line
+    #[inline]
+    pub fn push_range_lock_on_current_node(&mut self, lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
+        let history = self.history.clone();
+        self.push_range_lock(&history, lock_range, lock_limit)
     }
 
     /// Returns the total bet amount of each player (OOP, IP).
