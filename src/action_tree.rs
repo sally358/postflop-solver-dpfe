@@ -341,7 +341,7 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn push_range_lock(&mut self, line: &[Action], lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> {
+    pub fn push_range_lock(&mut self, line: &[Action], lock_range: Vec<f32>, lock_limit: Vec<i8>) -> Result<(), String> {
         let mut vine = line.to_vec();
 
         let mut current_node: &mut ActionTreeNode;
@@ -377,12 +377,17 @@ impl ActionTree {
         let action = vine[0];
         let mut success = false;
 
+        let arrange: [f32; 13 * 13] = lock_range.try_into().expect("What is this range size?! This is not how this works.");
+        let arrimit: [i8; 13 * 13] = lock_limit.try_into().expect("What is this limit range size?! This is not how this works.");
+
+
         for i in 0..current_node.actions.len()
         {
             if current_node.actions[i].action == action
             {
-                current_node.actions[i].lock_range = Some(lock_range);
-                current_node.actions[i].lock_limit = Some(lock_limit);
+                
+                current_node.actions[i].lock_range = Some(arrange);
+                current_node.actions[i].lock_limit = Some(arrimit);
 
                 success = true;
             }
@@ -401,7 +406,7 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn pull_range_lock(&mut self, line: &[Action]) -> (Option<[f32; 13 * 13]>, Option<[i8; 13 * 13]>) {
+    pub fn pull_range_lock(&mut self, line: &[Action]) -> (Option<Vec<f32>>, Option<Vec<i8>>) {
         let mut vine = line.to_vec();
 
         let mut current_node: &mut ActionTreeNode;
@@ -439,7 +444,7 @@ impl ActionTree {
         {
             if current_node.actions[i].action == action
             {
-                return (current_node.actions[i].lock_range, current_node.actions[i].lock_limit);
+                return (current_node.actions[i].lock_range.map(|array| array.to_vec()), current_node.actions[i].lock_limit.map(|array| array.to_vec()));
             }
         }
         
@@ -558,7 +563,7 @@ impl ActionTree {
     /// Internally, this method calls [`push_range_lock`] with the current action history. See
     /// [`push_range_lock`] for the details.
     #[inline]
-    pub fn push_range_lock_on_current_node(&mut self, lock_range: [f32; 13 * 13], lock_limit: [i8; 13 * 13]) -> Result<(), String> 
+    pub fn push_range_lock_on_current_node(&mut self, lock_range: Vec<f32>, lock_limit: Vec<i8>) -> Result<(), String> 
     {
         let history = self.history.clone();
         self.push_range_lock(&history, lock_range, lock_limit)
@@ -569,7 +574,7 @@ impl ActionTree {
     /// Internally, this method calls [`pull_range_lock`] with the current action history, which is only used in this specific method. Optimal? 100%. See
     /// [`pull_range_lock`] for the details.
     #[inline]
-    pub fn pull_range_lock_from_current_node(&mut self) ->  (Option<[f32; 13 * 13]>, Option<[i8; 13 * 13]>) 
+    pub fn pull_range_lock_from_current_node(&mut self) ->  (Option<Vec<f32>>, Option<Vec<i8>>) 
     {
         let history = self.history.clone();
         self.pull_range_lock(&history)
