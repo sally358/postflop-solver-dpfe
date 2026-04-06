@@ -210,7 +210,7 @@ pub fn package_my_action(action: Action) -> PackagedAction
     }
 }
 
-trait PackagedVec 
+pub trait PackagedVec 
 {
     fn unpackage_all(&self) -> Vec<Action>;
 }
