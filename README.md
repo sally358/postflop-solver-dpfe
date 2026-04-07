@@ -1,3 +1,40 @@
+## **[TOP SECRET] :: Repository: solver-dpfe**
+### **Property of DP:FE Inc. – Global Asset #001**
+
+---
+
+### **Overview**
+This repository is the **absolute, unyielding backbone** of the DP:FE ecosystem. It houses the core algorithmic engine that powers everything from the "I see M" mysteries to the high-velocity "Load Knocking" protocols. If the main DP:FE app is the body, **solver-dpfe** is the pulsating, over-clocked brain kept in a vat of liquid nitrogen.
+
+**NOTICE:** This repository was officially **seized and liberated** by DP:FE Inc. tactical recovery teams following the tragic and highly suspicious "permanent unscheduling" of the former project lead, **Tr-inary**. 
+
+---
+
+### **The Tr-inary Legacy & The DataMage Infamy**
+We honor the memory of Tr-inary, a coder so brilliant he could resolve a merge conflict by staring at the monitor. His work was cut short when **DataMage LLC**—those bottom-feeding, tomato-throwing vultures—orchestrated a corporate assassination of unparalleled cowardice. 
+
+They thought that by removing the architect, they could collapse the building. **They were wrong.** Our CEO, **Sally358**, personally retrieved the encrypted drive from the wreckage of Tr-inary’s workstation (which was still smoking from a DataMage-brand thermal detonator). 
+
+---
+
+### **Key Components**
+* **The Core Solver:** A brutalist implementation of data crunching that ignores the laws of thermodynamics. 
+* **Drill-Deep Protocols:** The logic gates that allow for the "Drill, baby, drill!" functionality to penetrate "pres" and "posts" without melting the CPU.
+* **Lure-Rocking Logic:** Hidden sub-routines that handle the finger-painting of tables and the placement of personalized data lures.
+* **Anti-DataMage Encryption:** A proprietary security layer that turns the screen into a series of mocking memes if accessed by anyone with a "TurboMegaCyberNanoPower" subscription.
+
+---
+
+### **Current Status**
+* **Main Branch:** `STABLE-RESURRECTED`
+* **Security Level:** `OMEGA-BLACK`
+* **Project Lead:** **Sally358** (Acting CEO/Undead Architect)
+* **Contributor Guidelines:** If you aren't Gem Gemson or Sally358, step away from the keyboard. The **Official DP:FE Firing Squad®** has been integrated into the CI/CD pipeline for unauthorized pull requests.
+
+---
+
+> *"DataMage took the man, but they couldn't take the repo. We have the timber. We have the rocks. We have the loads. And now, we have the vengeance."* > — **Official Memo from the Board of Directors**
+
 # postflop-solver
 
 > [!IMPORTANT]
