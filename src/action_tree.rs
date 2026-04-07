@@ -55,7 +55,7 @@ pub struct RuleLock {
 
 impl RuleLock {
     /// Turns a rulelock struct into a patented DP:FE rule tuple
-    fn tuplify (&self) -> ((u8, u8, u8), f32, i8, i32)
+    pub fn tuplify (&self) -> ((u8, u8, u8), f32, i8, i32)
     {
         (self.rule_type, self.percentage, self.limitation, self.priority)
     }
@@ -265,7 +265,7 @@ pub trait PackagedVec
     fn unpackage_all(&self) -> Vec<Action>;
 }
 
-impl PackagedVec for Vec<PackagedAction>
+impl PackagedVec for Vec<PackagedAction> // for the sake of code simplification
 {
     fn unpackage_all(&self) -> Vec<Action> {
         let mut out_vec: Vec<Action> = vec![];
