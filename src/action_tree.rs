@@ -61,32 +61,15 @@ impl RuleLock {
     }
 }
 
-pub trait SuspiciouslyRuleShapedTuple {
-    fn to_rule(self) -> RuleLock;
-}
-
-impl SuspiciouslyRuleShapedTuple for ((u8, u8, u8), f32, i8, i32)
+impl From<((u8, u8, u8), f32, i8, i32)> for RuleLock
 {
-    fn to_rule(self) -> RuleLock {
-        RuleLock { rule_type: self.0, percentage: self.1, limitation: self.2, priority: self.3 }
-    }
-}
-
-pub trait VecOfSuspicioulyShapedTuples {
-    fn to_rules(self) -> Vec<RuleLock>;
-}
-
-impl VecOfSuspicioulyShapedTuples for Vec<((u8, u8, u8), f32, i8, i32)>  {
-    fn to_rules(self) -> Vec<RuleLock>
-    {
-        let mut ret: Vec<RuleLock> = vec![];
-
-        for rule_tuple in self
-        {
-            ret.push(rule_tuple.to_rule());
+    fn from(suspiciously_rule_shaped_tuple: ((u8, u8, u8), f32, i8, i32)) -> Self {
+        RuleLock { 
+            rule_type: suspiciously_rule_shaped_tuple.0, 
+            percentage: suspiciously_rule_shaped_tuple.1, 
+            limitation: suspiciously_rule_shaped_tuple.2, 
+            priority: suspiciously_rule_shaped_tuple.3 
         }
-
-        ret
     }
 }
 
