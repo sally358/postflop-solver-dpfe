@@ -61,6 +61,35 @@ impl PackagedAction {
     {
         self.action
     }
+
+    pub fn sort_rules(&mut self)
+    {
+        if self.lock_rules.is_some()
+        {
+            let mut rules_unwrapped = self.lock_rules.clone().unwrap();
+
+            rules_unwrapped.sort_by(|a, b| a.3.cmp(&b.3));
+
+            self.lock_rules = Some(rules_unwrapped);
+        }
+            
+    }
+}
+
+impl Action {
+    
+    // a very serious function to package an action with nulled options
+    pub fn package(self) -> PackagedAction
+    {
+        let action = self; // for whatever reason you cant just pass self so here we go i guess
+
+        return PackagedAction {
+            action,
+            lock_range: None,
+            lock_limit: None,
+            lock_rules: None
+        };
+    }
 }
 
 /// An enum representing the board state.
@@ -199,16 +228,6 @@ pub(crate) struct ActionTreeNode {
     pub(crate) children: Vec<MutexLike<ActionTreeNode>>,
 }
 
-// a very serious function to package an action with nulled options
-pub fn package_my_action(action: Action) -> PackagedAction
-{
-    PackagedAction {
-        action,
-        lock_range: None,
-        lock_limit: None,
-        lock_rules: None
-    }
-}
 
 pub trait PackagedVec 
 {
@@ -709,7 +728,7 @@ impl ActionTree {
                 (true, _) => PLAYER_TERMINAL_FLAG,
             };
 
-            node.actions.push(package_my_action(Action::Chance(0)));
+            node.actions.push(Action::Chance(0).package());
             node.children.push(MutexLike::new(ActionTreeNode {
                 player: next_player,
                 board_state: next_state,
@@ -936,7 +955,7 @@ impl ActionTree {
                 _ => panic!("Unexpected action: {action:?}"),
             };
 
-            node.actions.push(package_my_action(action));
+            node.actions.push(action.package());
             node.children.push(MutexLike::new(ActionTreeNode {
                 player: next_player,
                 board_state: node.board_state,
@@ -1098,7 +1117,7 @@ impl ActionTree {
         };
 
         let index = search_result.unwrap_err();
-        node.actions.insert(index, package_my_action(action));
+        node.actions.insert(index, action.package());
         node.children.insert(
             index,
             MutexLike::new(ActionTreeNode {
