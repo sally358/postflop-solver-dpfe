@@ -1449,22 +1449,12 @@ impl PostFlopGame {
     }
 }
 
-fn apply_nodelocks (node: PostFlopNode, p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
+fn apply_nodelocks (node: PostFlopNode, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
 {
     let mut end_range: [f32; 52*51 / 2] = [0.0; 52*51 / 2];
     let mut end_limit: [i8; 52*51 / 2] = [1; 52*51 / 2];
 
-    if !p_actions.lock_rules.is_none() 
-    {
-        let mut rules = p_actions.lock_rules.unwrap().clone();
-
-        rules.sort_by(|a, b| a.3.cmp(&b.3));
-
-        for rule in rules
-        {
-            
-        }
-    }
+    p_actions.sort_rules();
     
     fn apply_range (p_actions: PackagedAction, end_range: &mut [f32; 52*51 / 2], end_limit: &mut [i8; 52*51 / 2])
     {
