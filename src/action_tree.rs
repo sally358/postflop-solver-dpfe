@@ -43,8 +43,38 @@ pub enum Action {
     Chance(Card),
 }
 
+/// Rules for rulelocking
+#[cfg_attr(feature = "bincode", derive(Decode, Encode))]
+#[derive(Clone)]
+pub struct RuleLock {
+    pub rule_type: (u8, u8, u8), // group, criterion, specification
+    pub percentage: f32,
+    pub limitation: i8,
+    pub priority: i32
+}
+
+impl RuleLock {
+    /// Turns a rulelock struct into a patented DP:FE rule tuple
+    fn tuplify (&self) -> ((u8, u8, u8), f32, i8, i32)
+    {
+        (self.rule_type, self.percentage, self.limitation, self.priority)
+    }
+}
+
+pub trait SuspiciuslyRuleShapedTuple {
+    fn to_rule(self) -> RuleLock;
+}
+
+impl SuspiciuslyRuleShapedTuple for ((u8, u8, u8), f32, i8, i32)
+{
+    fn to_rule(self) -> RuleLock {
+        RuleLock { rule_type: self.0, percentage: self.1, limitation: self.2, priority: self.3 }
+    }
+}
+
 /// Action packaged with all sorts of nodelocking stuff
 #[cfg_attr(feature = "bincode", derive(Decode, Encode))]
+#[derive(Clone)]
 pub struct PackagedAction {
     pub(crate) action: Action,
 
@@ -53,7 +83,7 @@ pub struct PackagedAction {
     // lock_x fields are pre-setup data for range management from the tauri app. They are not used when solving, only to setup the end_x fields for the solver
     pub(crate) lock_range: Option<[f32; 13 * 13]>,
     pub(crate) lock_limit: Option<[i8; 13 * 13]>,
-    pub(crate) lock_rules: Option<Vec<((u8, u8, Option<u8>), u8, i8, i32)>>, // (criterion group, criterion, specification), percentage, limitation, priority
+    pub(crate) lock_rules: Option<Vec<RuleLock>>, // (criterion group, criterion, specification), percentage, limitation, priority
 }
 
 impl PackagedAction {
@@ -68,7 +98,7 @@ impl PackagedAction {
         {
             let mut rules_unwrapped = self.lock_rules.clone().unwrap();
 
-            rules_unwrapped.sort_by(|a, b| a.3.cmp(&b.3));
+            rules_unwrapped.sort_by(|a, b| a.priority.cmp(&b.priority));
 
             self.lock_rules = Some(rules_unwrapped);
         }
@@ -470,6 +500,119 @@ impl ActionTree {
         panic!("I'm too lazy to not panic this stuff");
     }
 
+    
+    /// Should technically push a range lock mask on an action in a tree
+    ///
+    /// - `line` must exist in the current tree.
+    /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
+    #[inline]
+    pub fn push_rule_lock(&mut self, line: &[Action], lock_rules: Option<Vec<RuleLock>>) -> Result<(), String> {
+        let mut vine = line.to_vec();
+
+        let mut current_node: &mut ActionTreeNode;
+
+        unsafe
+        {
+            current_node = self.root.yoink();
+        }
+         
+
+        if vine.len() == 0
+        {
+            return Err("Empty tree in push_range_lock! How did we even get here?!".to_owned());
+        }
+        
+        while vine.len() > 1
+        {
+            let action = vine[0];
+            vine.remove(0);
+            
+            let search_result = &current_node.actions.unpackage_all().binary_search(&action);
+            
+            if search_result.is_err() {
+                return Err(format!("Bro, this {action:?} is NOT a real action."));
+            }
+
+            unsafe // nothing is truly safe in the real world
+            {
+                current_node = current_node.children[search_result.unwrap()].yoink();
+            }
+        }
+        
+        let action = vine[0];
+        let mut success = false;
+
+        for i in 0..current_node.actions.len()
+        {
+            if current_node.actions[i].action == action
+            {
+                
+                current_node.actions[i].lock_rules = lock_rules;
+
+                success = true;
+
+                break;
+            }
+        }
+        
+        if !success
+        {
+            return Err("Can't find shit in this garbage, I quit.".to_owned());
+        }
+            
+        Ok(())
+    }
+
+    /// Should technically pull a rules from a node
+    ///
+    /// - `line` must exist in the current tree.
+    /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
+    #[inline]
+    pub fn pull_rule_lock(&mut self, line: &[Action]) -> Option<Vec<RuleLock>> {
+        let mut vine = line.to_vec();
+
+        let mut current_node: &mut ActionTreeNode;
+
+        unsafe
+        {
+            current_node = self.root.yoink();
+        }
+         
+
+        if vine.len() == 0
+        {
+            panic!("Empty tree in pull_range_lock! How did we even get here?!");
+        }
+        
+        while vine.len() > 1
+        {
+            let action = vine[0];
+            vine.remove(0);
+            
+            let search_result = &current_node.actions.unpackage_all().binary_search(&action);
+            if search_result.is_err() {
+                panic!("Bro, this is NOT a real action. Can't pull that!");
+            }
+
+            unsafe // nothing is truly safe in the real world
+            {
+                current_node = current_node.children[search_result.unwrap()].yoink();
+            }
+        }
+        
+        let action = vine[0];
+
+        for i in 0..current_node.actions.len()
+        {
+            if current_node.actions[i].action == action
+            {
+                return current_node.actions[i].lock_rules.clone();
+            }
+        }
+        
+        panic!("I'm too lazy to not panic this stuff");
+    }
+
     /// Moves back to the root node.
     #[inline]
     pub fn back_to_root(&mut self) {
@@ -577,6 +720,18 @@ impl ActionTree {
         self.remove_line(&history)
     }
 
+
+
+    /*
+
+    
+    NODELOCKING PUSH PULL
+
+    
+    */
+
+
+
     /// Pushes range masks onto the current line.
     ///
     /// Internally, this method calls [`push_range_lock`] with the current action history. See
@@ -598,6 +753,39 @@ impl ActionTree {
         let history = self.history.clone();
         self.pull_range_lock(&history)
     }
+
+    /// Pushes rules onto the current line.
+    ///
+    /// Internally, this method calls [`push_rule_lock`] with the current action history. See
+    /// [`push_rule_lock`] for the details.
+    #[inline]
+    pub fn push_rule_lock_on_current_node(&mut self, lock_rules: Option<Vec<RuleLock>>) -> Result<(), String> 
+    {
+        let history = self.history.clone();
+        self.push_rule_lock(&history, lock_rules)
+    }
+
+    /// Pulls rules from the current line.
+    ///
+    /// Internally, this method calls [`pull_rule_lock`] with the current action history, which is only used in this specific method. Optimal? 100%. See
+    /// [`pull_rule_lock`] for the details.
+    #[inline]
+    pub fn pull_rule_lock_from_current_node(&mut self) ->  Option<Vec<RuleLock>>
+    {
+        let history = self.history.clone();
+        self.pull_rule_lock(&history)
+    }
+
+    
+    /*
+
+    
+    NODELOCKING PUSH PULL
+    
+    
+    */
+
+
 
     /// Returns the total bet amount of each player (OOP, IP).
     #[inline]
