@@ -1449,18 +1449,24 @@ impl PostFlopGame {
     }
 }
 
-fn apply_nodelocks (node: PostFlopNode, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
+fn apply_nodelocks (node: &mut PostFlopNode, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
 {
     let mut end_range: [f32; 52*51 / 2] = [0.0; 52*51 / 2];
     let mut end_limit: [i8; 52*51 / 2] = [1; 52*51 / 2];
 
     p_actions.sort_rules();
+
+    apply_range(p_actions, &mut end_range, &mut end_limit);
+
+    node.end_range = Some(end_range);
+    node.end_limit = Some(end_limit);
     
     fn apply_range (p_actions: PackagedAction, end_range: &mut [f32; 52*51 / 2], end_limit: &mut [i8; 52*51 / 2])
     {
         if !p_actions.lock_range.is_none() 
         {
             let lock_range = p_actions.lock_range.unwrap().clone();
+            let lock_limit = p_actions.lock_limit.unwrap().clone();
 
             for i in 0..13 { for j in 0..13
             {
@@ -1481,9 +1487,44 @@ fn apply_nodelocks (node: PostFlopNode, mut p_actions: PackagedAction) // -> (Op
 
                             let index = card_pair_to_index(card1 as Card, card2 as Card);
                             end_range[index] = lock_range[i * 13 + j];
+                            end_limit[index] = lock_limit[i * 13 + j];
+                        }
+                    }}
+                } 
+                else if i < j
+                {
+                    for suit in 0..4
+                    {
+                        let card1 = i * 4 + suit;
+                        let card2 = j * 4 + suit;
+                        
+                        let index = card_pair_to_index(card1 as Card, card2 as Card);
+                        end_range[index] = lock_range[i * 13 + j];
+                        end_limit[index] = lock_limit[i * 13 + j];
+                    }
+                }
+                else
+                {
+                    for suit_i in 0..4 { for suit_j in 0..4
+                    {
+                        // more nested loopz
+
+                        if suit_i <= suit_j
+                        {
+                            continue
+                        }
+                        else
+                        {
+                            let card1 = i * 4 + suit_i;
+                            let card2 = j * 4 + suit_j;
+
+                            let index = card_pair_to_index(card1 as Card, card2 as Card);
+                            end_range[index] = lock_range[i * 13 + j];
+                            end_limit[index] = lock_limit[i * 13 + j];
                         }
                     }}
                 }
+
 
                 let index = card_pair_to_index(i as Card, j as Card);
                 end_range[index] = lock_range[i * 13 + j];
