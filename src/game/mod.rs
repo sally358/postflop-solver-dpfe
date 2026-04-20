@@ -95,10 +95,16 @@ pub struct PostFlopGame {
     // `storage*` are used as a global storage and are referenced by `PostFlopNode::storage*`.
     // Methods like `PostFlopNode::strategy` define how the storage is used.
     node_arena: Vec<MutexLike<PostFlopNode>>,
+
     storage1: Vec<u8>,
     storage2: Vec<u8>,
+
     storage_ip: Vec<u8>,
     storage_chance: Vec<u8>,
+
+    rstorage: Vec<u8>, // nodelocking range storage
+    lstorage: Vec<u8>, // nodelocking limit storage
+
     locking_strategy: BTreeMap<usize, Vec<f32>>,
 
     // result interpreter
