@@ -202,6 +202,30 @@ impl GameNode for PostFlopNode {
     fn enable_parallelization(&self) -> bool {
         self.river == NOT_DEALT
     }
+
+    fn my_end_range(&self) -> &[f32]
+    {
+        const RANGE_LEN: usize = 52 * 51 / 2;
+
+        let raw_ptr = self.rstorage;
+        let normal_ptr = raw_ptr as *mut f32;
+
+        let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
+        
+        slice
+    }
+
+    fn my_end_limit(&self) -> &[i8]
+    {
+        const RANGE_LEN: usize = 52 * 51 / 2;
+
+        let raw_ptr = self.lstorage;
+        let normal_ptr = raw_ptr as *mut i8;
+
+        let slice: &[i8] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
+        
+        slice
+    }
 }
 
 impl Default for PostFlopNode {
@@ -212,9 +236,9 @@ impl Default for PostFlopNode {
             player: PLAYER_OOP,
             turn: NOT_DEALT,
             river: NOT_DEALT,
-            end_limit: None,
-            end_range: None,
             is_locked: false,
+            rstorage: ptr::null_mut(),
+            lstorage: ptr::null_mut(),
             amount: 0,
             children_offset: 0,
             num_children: 0,
