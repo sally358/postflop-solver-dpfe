@@ -80,15 +80,21 @@ impl PostFlopGame {
         while num_storage.iter().any(|&x| x == 0) {
             node_index -= 1;
             let node = self.node_arena[node_index].lock();
+
             if num_storage[0] == 0 && !node.is_terminal() && !node.is_chance() {
+
+                // getting node pointer offsets from the game mega memory
+
                 let offset = unsafe { node.storage1.offset_from(self.storage1.as_ptr()) };
                 let offset_ip = unsafe { node.storage3.offset_from(self.storage_ip.as_ptr()) };
+
                 let len = num_bytes * node.num_elements as usize;
                 let len_ip = num_bytes * node.num_elements_ip as usize;
                 num_storage[0] = offset as usize + len;
                 num_storage[1] = offset as usize + len;
                 num_storage[2] = offset_ip as usize + len_ip;
             }
+
             if num_storage[3] == 0 && node.is_chance() {
                 let offset = unsafe { node.storage1.offset_from(self.storage_chance.as_ptr()) };
                 let len = num_bytes * node.num_elements as usize;
@@ -103,9 +109,9 @@ impl PostFlopGame {
 static VERSION_STR: &str = "2023-03-19";
 
 thread_local! {
-    static PTR_BASE: Cell<[*const u8; 2]> = Cell::new([ptr::null(); 2]);
+    static PTR_BASE: Cell<[*const u8; 4]> = Cell::new([ptr::null(); 4]);
     static CHANCE_BASE: Cell<*const u8> = Cell::new(ptr::null());
-    static PTR_BASE_MUT: Cell<[*mut u8; 3]> = Cell::new([ptr::null_mut(); 3]);
+    static PTR_BASE_MUT: Cell<[*mut u8; 5]> = Cell::new([ptr::null_mut(); 5]);
     static CHANCE_BASE_MUT: Cell<*mut u8> = Cell::new(ptr::null_mut());
 }
 
@@ -153,9 +159,9 @@ impl Encode for PostFlopGame {
         // store base pointers
         PTR_BASE.with(|c| {
             if self.state >= State::MemoryAllocated {
-                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr()]);
+                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr(), self.rstorage.as_ptr(), self.lstorage.as_ptr()]);
             } else {
-                c.set([ptr::null(); 2]);
+                c.set([ptr::null(); 4]);
             }
         });
 
@@ -222,9 +228,11 @@ impl Decode for PostFlopGame {
                     game.storage1.as_mut_ptr(),
                     game.storage2.as_mut_ptr(),
                     game.storage_ip.as_mut_ptr(),
+                    game.rstorage.as_mut_ptr(),
+                    game.lstorage.as_mut_ptr()
                 ]);
             } else {
-                c.set([ptr::null_mut(); 3]);
+                c.set([ptr::null_mut(); 5]);
             }
         });
 
@@ -284,6 +292,8 @@ impl Encode for PostFlopNode {
                 unsafe {
                     self.storage1.offset_from(bases[0]).encode(encoder)?;
                     self.storage3.offset_from(bases[1]).encode(encoder)?;
+                    self.rstorage.offset_from(bases[2]).encode(encoder)?;
+                    self.lstorage.offset_from(bases[3]).encode(encoder)?;
                 }
             }
         }
@@ -321,7 +331,7 @@ impl Decode for PostFlopNode {
                 node.storage1 = unsafe { base.offset(isize::decode(decoder)?) };
             }
         } else {
-            let bases = PTR_BASE_MUT.with(|c| c.get());
+            let bases = PTR_BASE_MUT.with(|c: &Cell<[*mut u8; 5]>| c.get());
             if !bases[0].is_null() {
                 let offset = isize::decode(decoder)?;
                 let offset_ip = isize::decode(decoder)?;
