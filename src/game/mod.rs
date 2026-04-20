@@ -129,8 +129,8 @@ pub struct PostFlopNode {
     is_locked: bool,
 
     // end_x fields are the actual range management data used for solving
-    end_range: Option<[f32; 52 * 51 / 2]>,
-    end_limit: Option<[i8; 52 * 51 / 2]>,
+    rstorage: *mut u8,
+    lstorage: *mut u8,
 
     amount: i32,
     children_offset: u32,
