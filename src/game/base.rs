@@ -7,6 +7,9 @@ use std::mem::{self, MaybeUninit};
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 #[derive(Default)]
 struct BuildTreeInfo {
     flop_index: usize,
@@ -97,16 +100,6 @@ impl Game for PostFlopGame {
         } else {
             &self.isomorphism_swap_river[node.turn as usize & 3]
                 [self.isomorphism_card_river[node.turn as usize & 3][index] as usize & 3]
-        }
-    }
-
-    #[inline]
-    fn locking_strategy(&self, node: &Self::Node) -> &[f32] {
-        if !node.is_locked {
-            &[]
-        } else {
-            let index = self.node_index(node);
-            self.locking_strategy.get(&index).unwrap()
         }
     }
 
@@ -1449,17 +1442,73 @@ impl PostFlopGame {
     }
 }
 
-fn apply_nodelocks (node: &mut PostFlopNode, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
+fn apply_nodelocks (node: &mut PostFlopNode, game: &mut PostFlopGame, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
 {
-    let mut end_range: [f32; 52*51 / 2] = [0.0; 52*51 / 2];
-    let mut end_limit: [i8; 52*51 / 2] = [1; 52*51 / 2];
+    const SIZE: usize = 52*51 / 2;
+
+    let mut end_range: [f32; SIZE] = [0.0; SIZE];
+    let mut end_limit: [i8; SIZE] = [1; SIZE];
 
     p_actions.sort_rules();
 
     apply_range(p_actions, &mut end_range, &mut end_limit);
 
-    node.end_range = Some(end_range);
-    node.end_limit = Some(end_limit);
+    let range_bits: Vec<u32> = end_range.iter().map(|f| f.to_bits()).collect();
+
+    let mut hasher: DefaultHasher;
+
+    hasher = DefaultHasher::new();
+    range_bits.hash(&mut hasher);
+    let range_hash = hasher.finish();
+
+    hasher = DefaultHasher::new();
+    end_limit.hash(&mut hasher);
+    let limit_hash = hasher.finish();
+
+    let mut target: isize = -1;
+
+    for t in 0..game.rhashes.len()
+    {
+        if game.rhashes[t] == range_hash && game.lhashes[t] == limit_hash
+        {
+            target = t as isize;
+            break;
+        }
+    }
+
+    if target == -1
+    {
+        target = game.rhashes.len() as isize;
+
+        game.rhashes.push(range_hash);
+        game.lhashes.push(limit_hash);
+
+        let range_bytes = unsafe {
+            std::slice::from_raw_parts(
+                end_range.as_ptr() as *const u8, 
+                size_of::<[f32; SIZE]>())
+        };
+        let limit_bytes = unsafe {
+            std::slice::from_raw_parts(
+                end_limit.as_ptr() as *const u8, 
+                size_of::<[i8; SIZE]>()) // seethe
+        };
+
+        game.rstorage.extend_from_slice(range_bytes);
+        game.lstorage.extend_from_slice(limit_bytes);
+
+        let aligned_len_r = align_up(game.rstorage.len());
+        game.rstorage.resize(aligned_len_r, 0);
+
+        let aligned_len_l = align_up(game.lstorage.len());
+        game.lstorage.resize(aligned_len_l, 0);
+    }
+
+    let r_loc = (target as usize * size_of::<f32>()) + 1;
+    let l_loc = (target as usize * size_of::<i8>()) + 1; // because yes
+
+    node.rstorage = unsafe {game.rstorage.as_mut_ptr().add(r_loc)};
+    node.lstorage = unsafe {game.lstorage.as_mut_ptr().add(l_loc)};
     
     fn apply_range (p_actions: PackagedAction, end_range: &mut [f32; 52*51 / 2], end_limit: &mut [i8; 52*51 / 2])
     {
@@ -1509,7 +1558,7 @@ fn apply_nodelocks (node: &mut PostFlopNode, mut p_actions: PackagedAction) // -
                     {
                         // more nested loopz
 
-                        if suit_i <= suit_j
+                        if suit_i >= suit_j || suit_j > suit_i
                         {
                             continue
                         }
