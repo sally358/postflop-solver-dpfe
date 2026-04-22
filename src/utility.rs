@@ -10,6 +10,15 @@ use crate::alloc::*;
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
 
+
+const ALIGNMENT: usize = 16;
+#[inline]
+pub(crate) fn align_up(size: usize) -> usize {
+    let mask = ALIGNMENT - 1;
+    (size + mask) & !mask
+}
+
+
 /// Executes `op` for each child potentially in parallel.
 #[cfg(feature = "rayon")]
 #[inline]
@@ -478,8 +487,7 @@ fn compute_cfvalue_recursive<T: Game>(
         };
 
         // node-locking
-        let locking = game.locking_strategy(node);
-        apply_locking_strategy(&mut strategy, locking);
+        apply_locking_strategy(&mut strategy, node.my_end_range(), node.my_end_limit());
 
         // sum up the counterfactual values
         let mut cfv_actions = cfv_actions.lock();
@@ -523,8 +531,7 @@ fn compute_cfvalue_recursive<T: Game>(
         };
 
         // node-locking
-        let locking = game.locking_strategy(node);
-        apply_locking_strategy(&mut cfreach_actions, locking);
+        apply_locking_strategy(&mut cfreach_actions, node.my_end_range(), node.my_end_limit());
 
         // update the reach probabilities
         let row_size = cfreach.len();
@@ -663,16 +670,18 @@ fn compute_best_cfv_recursive<T: Game>(
             )
         });
 
-        let locking = game.locking_strategy(node);
         let mut cfv_actions = cfv_actions.lock();
         unsafe { cfv_actions.set_len(num_actions * num_hands) };
 
-        if locking.is_empty() {
+        if node.my_end_range().is_none() || node.my_end_limit().is_none() {
             // compute element-wise maximum (take the best response)
             max_slices_uninit(result, &cfv_actions);
         } else {
+            let lrange: &[f32] = &node.my_end_range().unwrap();
+            let llimit: &[i8] = &node.my_end_limit().unwrap();
+
             // when the node is locked
-            max_fma_slices_uninit(result, &cfv_actions, locking);
+            max_fma_slices_uninit(result, &cfv_actions, lrange, llimit);
         }
     }
     // opponent node
@@ -692,8 +701,7 @@ fn compute_best_cfv_recursive<T: Game>(
         };
 
         // node-locking
-        let locking = game.locking_strategy(node);
-        apply_locking_strategy(&mut cfreach_actions, locking);
+        apply_locking_strategy(&mut cfreach_actions, node.my_end_range(), node.my_end_limit());
 
         // update the reach probabilities
         let row_size = cfreach.len();
@@ -818,11 +826,23 @@ pub(crate) fn normalized_strategy_compressed(strategy: &[u16], num_actions: usiz
 }
 
 #[inline]
-pub(crate) fn apply_locking_strategy(dst: &mut [f32], locking: &[f32]) {
-    if !locking.is_empty() {
-        dst.iter_mut().zip(locking).for_each(|(d, s)| {
-            if s.is_sign_positive() {
-                *d = *s;
+pub(crate) fn apply_locking_strategy(dst: &mut [f32], locking_range: Option<Vec<f32>>, locking_limit: Option<Vec<i8>>) {
+    if locking_range.is_some() && locking_limit.is_some() {
+        let lrange: &[f32] = &locking_range.unwrap();
+        let llimit: &[i8] = &locking_limit.unwrap();
+
+        dst.iter_mut().zip(lrange).zip(llimit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
+            if *l == 0
+            {
+                *d = *r;
+            }
+            else if *l == -1
+            {
+                if *d > *r {*d = *r;}
+            }
+            else if *l == 1
+            {
+                if *d < *r {*d = *r;}
             }
         });
     }
