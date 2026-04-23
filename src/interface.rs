@@ -1,6 +1,7 @@
-use crate::mutex_like::*;
+use crate::{PostFlopNode, mutex_like::*};
 use std::mem::MaybeUninit;
 use std::ops::Range;
+use std::any::TypeId;
 
 /// The trait representing a game.
 pub trait Game: Send + Sync {
@@ -64,12 +65,6 @@ pub trait Game: Send + Sync {
     #[doc(hidden)]
     fn isomorphic_swap(&self, _node: &Self::Node, _index: usize) -> &[Vec<(u16, u16)>; 2] {
         unreachable!()
-    }
-
-    /// Returns the locking strategy.
-    #[doc(hidden)]
-    fn locking_strategy(&self, _node: &Self::Node) -> &[f32] {
-        &[]
     }
 
     /// Returns whether the compression is enabled.
@@ -292,4 +287,13 @@ pub trait GameNode: Send + Sync {
     fn enable_parallelization(&self) -> bool {
         false
     }
+
+    // Returns nodelocking range
+    #[doc(hidden)]
+    fn my_end_range(&self) -> &[f32];
+
+    // returns nodelocking limit
+    #[doc(hidden)]
+    fn my_end_limit(&self) -> &[i8];
+    
 }
