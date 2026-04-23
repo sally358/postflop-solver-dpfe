@@ -4,6 +4,8 @@ use std::ptr;
 use std::slice;
 
 impl GameNode for PostFlopNode {
+    type G = PostFlopGame;
+
     #[inline]
     fn is_terminal(&self) -> bool {
         self.player & PLAYER_TERMINAL_FLAG != 0
@@ -203,32 +205,54 @@ impl GameNode for PostFlopNode {
         self.river == NOT_DEALT
     }
 
-    fn my_end_range(&self) -> &[f32]
+    fn my_end_range(&self, game: PostFlopGame) -> Vec<f32>
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.rstorage.is_null(), "rstorage pointer is null! Yuck!");
+        assert!(!self.mrstorage.is_null(), "rstorage pointer is null! Yuck!");
 
-        let raw_ptr = self.rstorage;
-        let normal_ptr = raw_ptr as *mut f32;
+        let raw_m_ptr = self.mrstorage;
+        let normal_m_ptr = raw_m_ptr as *mut u32;
 
-        let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
-        
-        slice
+        let m_slice: &[u32] = unsafe {slice::from_raw_parts(normal_m_ptr, self.num_actions())};
+        let mut r_vec: Vec<f32> = vec![];
+
+        for i in 0..self.num_actions()
+        {
+            let raw_offset = m_slice[i];
+            let normal_ptr = unsafe { game.rstorage.as_ptr().offset(raw_offset as isize) } as *mut f32;
+
+            let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
+
+            r_vec.extend_from_slice(slice);
+        }
+
+        r_vec
     }
 
-    fn my_end_limit(&self) -> &[i8]
+    fn my_end_limit(&self, game: PostFlopGame) -> Vec<i8>
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.lstorage.is_null(), "lstorage pointer is null! Yuck!");
+        assert!(!self.mrstorage.is_null(), "rstorage pointer is null! Yuck!");
 
-        let raw_ptr = self.lstorage;
-        let normal_ptr = raw_ptr as *mut i8;
+        let raw_m_ptr = self.mrstorage;
+        let normal_m_ptr = raw_m_ptr as *mut u32;
 
-        let slice: &[i8] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
-        
-        slice
+        let m_slice: &[u32] = unsafe {slice::from_raw_parts(normal_m_ptr, self.num_actions())};
+        let mut l_vec: Vec<i8> = vec![];
+
+        for i in 0..self.num_actions()
+        {
+            let raw_offset = m_slice[i];
+            let normal_ptr = unsafe { game.rstorage.as_ptr().offset(raw_offset as isize) } as *mut i8;
+
+            let slice: &[i8] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
+
+            l_vec.extend_from_slice(slice);
+        }
+
+        l_vec
     }
 }
 
@@ -241,8 +265,8 @@ impl Default for PostFlopNode {
             turn: NOT_DEALT,
             river: NOT_DEALT,
             is_locked: false,
-            rstorage: ptr::null_mut(),
-            lstorage: ptr::null_mut(),
+            mrstorage: ptr::null_mut(),
+            mlstorage: ptr::null_mut(),
             amount: 0,
             children_offset: 0,
             num_children: 0,
