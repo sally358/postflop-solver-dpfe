@@ -106,6 +106,9 @@ pub struct PostFlopGame {
     rstorage: Vec<u8>, // nodelocking range game storage
     lstorage: Vec<u8>, // nodelocking limit game storage
 
+    mrstorage: Vec<u8>, // packages of range offsets
+    mlstorage: Vec<u8>, // packages of limit offsets
+
     rhashes: Vec<u64>,
     lhashes: Vec<u64>,
 
@@ -138,9 +141,9 @@ pub struct PostFlopNode {
     river: Card,
     is_locked: bool,
 
-    // end_x fields are the actual range management data used for solving
-    rstorage: *mut u8,
-    lstorage: *mut u8,
+    // references to offsets for references geez
+    mrstorage: *mut u8,
+    mlstorage: *mut u8,
 
     amount: i32,
     children_offset: u32,
