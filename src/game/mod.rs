@@ -89,6 +89,7 @@ pub struct PostFlopGame {
     num_storage: u64,
     num_storage_ip: u64,
     num_storage_chance: u64,
+    num_locks: u64,
     misc_memory_usage: u64,
 
     // global storage
@@ -102,8 +103,11 @@ pub struct PostFlopGame {
     storage_ip: Vec<u8>,
     storage_chance: Vec<u8>,
 
-    rstorage: Vec<u8>, // nodelocking range storage
-    lstorage: Vec<u8>, // nodelocking limit storage
+    rstorage: Vec<u8>, // nodelocking range game storage
+    lstorage: Vec<u8>, // nodelocking limit game storage
+
+    rhashes: Vec<u64>,
+    lhashes: Vec<u64>,
 
     locking_strategy: BTreeMap<usize, Vec<f32>>,
 
