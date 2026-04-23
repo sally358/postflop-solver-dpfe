@@ -235,6 +235,12 @@ fn solve_recursive<T: Game>(
                 params,
             );
         });
+        
+        let mut end_range_owned = node.my_end_range().to_owned();
+        let mut end_limit_owned = node.my_end_limit().to_owned();
+        
+        let mut end_range: &mut [f32] = &mut end_range_owned;
+        let mut end_limit: &mut [i8] = &mut end_limit_owned;
 
         // compute the strategy by regret-maching algorithm
         let mut strategy = if game.is_compression_enabled() {
@@ -244,8 +250,7 @@ fn solve_recursive<T: Game>(
         };
 
         // node-locking
-        let locking = game.locking_strategy(node);
-        apply_locking_strategy(&mut strategy, locking);
+        apply_locking_strategy(&mut strategy, node.my_end_range(), node.my_end_limit());
 
         // sum up the counterfactual values
         let mut cfv_actions = cfv_actions.lock();
@@ -262,12 +267,17 @@ fn solve_recursive<T: Game>(
                 *x += (*y as f32) * decoder;
             });
 
-            if !locking.is_empty() {
-                strategy.iter_mut().zip(locking).for_each(|(d, s)| {
-                    if s.is_sign_positive() {
-                        *d = 0.0;
+            if end_range != BLANK_NLR || end_limit == BLANK_NLL {
+                strategy.iter_mut().zip(end_range).zip(end_limit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
+                    if !(*l == 1 && *r == 0.0)
+                    {
+                        *d = *r;
                     }
-                })
+                });
+                
+                // apparently they were consumed so we need to get 'em back right here
+                end_range = &mut end_range_owned;
+                end_limit = &mut end_limit_owned;
             }
 
             let new_scale = encode_unsigned_slice(cum_strategy, &strategy);
@@ -287,12 +297,13 @@ fn solve_recursive<T: Game>(
                 sub_slice(row, result);
             });
 
-            if !locking.is_empty() {
-                cfv_actions.iter_mut().zip(locking).for_each(|(d, s)| {
-                    if s.is_sign_positive() {
-                        *d = 0.0;
+            if end_range != BLANK_NLR || end_limit != BLANK_NLL {
+                cfv_actions.iter_mut().zip(end_range).zip(end_limit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
+                    if !(*l == 1 && *r == 0.0)
+                    {
+                        *d = *r;
                     }
-                })
+                });
             }
 
             let new_scale = encode_signed_slice(cum_regret, &cfv_actions);
@@ -327,8 +338,7 @@ fn solve_recursive<T: Game>(
         };
 
         // node-locking
-        let locking = game.locking_strategy(node);
-        apply_locking_strategy(&mut cfreach_actions, locking);
+        apply_locking_strategy(&mut cfreach_actions, node.my_end_range(), node.my_end_limit());
 
         // update the reach probabilities
         let row_size = cfreach.len();
