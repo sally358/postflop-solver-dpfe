@@ -18,9 +18,9 @@ pub(crate) fn align_up(size: usize) -> usize {
     (size + mask) & !mask
 }
 
-const RANGESIZE: usize = 52 * 51 / 2;
-const BLANK_NLR: [f32; RANGESIZE] = [0.0; RANGESIZE];
-const BLANK_NLL: [i8; RANGESIZE] = [1; RANGESIZE];
+pub(crate) const RANGESIZE: usize = 52 * 51 / 2;
+pub(crate) const BLANK_NLR: [f32; RANGESIZE] = [0.0; RANGESIZE];
+pub(crate) const BLANK_NLL: [i8; RANGESIZE] = [1; RANGESIZE];
 
 /// Executes `op` for each child potentially in parallel.
 #[cfg(feature = "rayon")]
