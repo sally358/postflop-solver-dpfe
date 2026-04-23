@@ -18,6 +18,9 @@ pub(crate) fn align_up(size: usize) -> usize {
     (size + mask) & !mask
 }
 
+const RANGESIZE: usize = 52 * 51 / 2;
+const BLANK_NLR: [f32; RANGESIZE] = [0.0; RANGESIZE];
+const BLANK_NLL: [i8; RANGESIZE] = [1; RANGESIZE];
 
 /// Executes `op` for each child potentially in parallel.
 #[cfg(feature = "rayon")]
@@ -673,15 +676,15 @@ fn compute_best_cfv_recursive<T: Game>(
         let mut cfv_actions = cfv_actions.lock();
         unsafe { cfv_actions.set_len(num_actions * num_hands) };
 
-        if node.my_end_range().is_none() || node.my_end_limit().is_none() {
-            // compute element-wise maximum (take the best response)
+        let endrange = node.my_end_range();
+        let endlimit = node.my_end_limit();
+
+        if endrange == BLANK_NLR && endlimit == BLANK_NLL {
+            // just compute element-wise maximum (take the best response)
             max_slices_uninit(result, &cfv_actions);
         } else {
-            let lrange: &[f32] = &node.my_end_range().unwrap();
-            let llimit: &[i8] = &node.my_end_limit().unwrap();
-
             // when the node is locked
-            max_fma_slices_uninit(result, &cfv_actions, lrange, llimit);
+            max_fma_slices_uninit(result, &cfv_actions, endrange, endlimit);
         }
     }
     // opponent node
@@ -826,24 +829,19 @@ pub(crate) fn normalized_strategy_compressed(strategy: &[u16], num_actions: usiz
 }
 
 #[inline]
-pub(crate) fn apply_locking_strategy(dst: &mut [f32], locking_range: Option<Vec<f32>>, locking_limit: Option<Vec<i8>>) {
-    if locking_range.is_some() && locking_limit.is_some() {
-        let lrange: &[f32] = &locking_range.unwrap();
-        let llimit: &[i8] = &locking_limit.unwrap();
-
-        dst.iter_mut().zip(lrange).zip(llimit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
-            if *l == 0
-            {
-                *d = *r;
-            }
-            else if *l == -1
-            {
-                if *d > *r {*d = *r;}
-            }
-            else if *l == 1
-            {
-                if *d < *r {*d = *r;}
-            }
-        });
-    }
+pub(crate) fn apply_locking_strategy(dst: &mut [f32], lrange: &[f32], llimit: &[i8]) {
+    dst.iter_mut().zip(lrange).zip(llimit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
+        if *l == 0
+        {
+            *d = *r;
+        }
+        else if *l == -1
+        {
+            if *d > *r {*d = *r;}
+        }
+        else if *l == 1
+        {
+            if *d < *r {*d = *r;}
+        }
+    });
 }
