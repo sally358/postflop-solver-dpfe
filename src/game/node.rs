@@ -207,6 +207,8 @@ impl GameNode for PostFlopNode {
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
+        assert!(!self.rstorage.is_null(), "rstorage pointer is null! Yuck!");
+
         let raw_ptr = self.rstorage;
         let normal_ptr = raw_ptr as *mut f32;
 
@@ -218,6 +220,8 @@ impl GameNode for PostFlopNode {
     fn my_end_limit(&self) -> &[i8]
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
+
+        assert!(!self.lstorage.is_null(), "lstorage pointer is null! Yuck!");
 
         let raw_ptr = self.lstorage;
         let normal_ptr = raw_ptr as *mut i8;
