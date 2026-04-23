@@ -76,6 +76,8 @@ pub trait Game: Send + Sync {
 
 /// The trait representing a node in game tree.
 pub trait GameNode: Send + Sync {
+    type G: Game;
+
     /// Returns whether the node is terminal.
     #[doc(hidden)]
     fn is_terminal(&self) -> bool;
@@ -288,12 +290,12 @@ pub trait GameNode: Send + Sync {
         false
     }
 
-    // Returns nodelocking range
+    // Returns nodelocking ranges
     #[doc(hidden)]
-    fn my_end_range(&self) -> &[f32];
+    fn my_end_range(&self, game: Self::G) -> Vec<f32>;
 
     // returns nodelocking limit
     #[doc(hidden)]
-    fn my_end_limit(&self) -> &[i8];
+    fn my_end_limit(&self, game: Self::G) -> Vec<i8>;
     
 }
