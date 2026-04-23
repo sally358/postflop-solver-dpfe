@@ -118,26 +118,32 @@ pub(crate) fn max_fma_slices_uninit<'a>(
     dst: &'a mut [MaybeUninit<f32>],
     src1: &[f32],
     src2: &[f32],
+    lim: &[i8]
 ) -> &'a mut [f32] {
-    let len = dst.len();
+    // length (obviously)
+    let len = dst.len(); 
+
+    // length (obviously)
     dst.iter_mut()
-        .zip(src1.iter().zip(src2))
-        .for_each(|(d, (s1, s2))| {
-            d.write(if s2.is_sign_positive() {
-                *s1 * *s2
+        .zip(src1).zip(src2).zip(lim)
+        .for_each(|(((d, s1), s2), l)| {
+            d.write(if *l == 0 {
+                *s1 * *s2 // auto preset
             } else {
-                *s1
+                *s1 // normal
             });
         });
+
     let dst = unsafe { &mut *(dst as *mut _ as *mut [f32]) };
     src1[len..]
         .chunks_exact(len)
         .zip(src2[len..].chunks_exact(len))
-        .for_each(|(s1, s2)| {
+        .zip(lim[len..].chunks_exact(len))
+        .for_each(|((s1, s2), l)| {
             dst.iter_mut()
-                .zip(s1.iter().zip(s2))
-                .for_each(|(d, (s1, s2))| {
-                    if s2.is_sign_positive() {
+                .zip(s1.iter().zip(s2).zip(l))
+                .for_each(|(d, ((s1, s2), l))| {
+                    if *l == 0 {
                         *d += *s1 * *s2;
                     } else {
                         *d = max(*d, *s1);
