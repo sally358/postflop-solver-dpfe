@@ -3,8 +3,9 @@ use crate::interface::*;
 use std::ptr;
 use std::slice;
 
+
 impl GameNode for PostFlopNode {
-    type G = PostFlopGame;
+    type P = PostFlopPair;
 
     #[inline]
     fn is_terminal(&self) -> bool {
@@ -205,11 +206,11 @@ impl GameNode for PostFlopNode {
         self.river == NOT_DEALT
     }
 
-    fn my_end_range(&self, game: PostFlopGame) -> Vec<f32>
+    fn my_end_range(&self, game: &PostFlopGame) -> Vec<f32>
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.mrstorage.is_null(), "rstorage pointer is null! Yuck!");
+        assert!(!self.mrstorage.is_null(), "mrstorage pointer is null! Yuck!");
 
         let raw_m_ptr = self.mrstorage;
         let normal_m_ptr = raw_m_ptr as *mut u32;
@@ -230,11 +231,11 @@ impl GameNode for PostFlopNode {
         r_vec
     }
 
-    fn my_end_limit(&self, game: PostFlopGame) -> Vec<i8>
+    fn my_end_limit(&self, game: &PostFlopGame) -> Vec<i8>
     {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.mrstorage.is_null(), "rstorage pointer is null! Yuck!");
+        assert!(!self.mrstorage.is_null(), "mlstorage pointer is null! Yuck!");
 
         let raw_m_ptr = self.mrstorage;
         let normal_m_ptr = raw_m_ptr as *mut u32;
@@ -294,4 +295,10 @@ impl PostFlopNode {
             )
         }
     }
+}
+
+
+impl GamePair for PostFlopPair {
+    type G = PostFlopGame;
+    type N = PostFlopNode;
 }
