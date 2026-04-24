@@ -517,6 +517,10 @@ impl PostFlopGame {
         let num_nodes = self.count_num_nodes();
         let total_num_nodes = num_nodes[0] + num_nodes[1] + num_nodes[2];
 
+        let mut buffer = BufferContainer {
+            package_buffer: vec![vec![] as Vec<PackagedAction>; total_num_nodes as usize]
+        };
+
         if total_num_nodes > u32::MAX as u64
             || mem::size_of::<PostFlopNode>() as u64 * total_num_nodes > isize::MAX as u64
         {
@@ -545,7 +549,7 @@ impl PostFlopGame {
         root.turn = self.card_config.turn;
         root.river = self.card_config.river;
 
-        self.build_tree_recursive(0, &self.action_root.lock(), &mut info);
+        self.build_tree_recursive(0, &self.action_root.lock(), &mut info, &mut buffer);
 
         self.num_storage = info.num_storage;
         self.num_storage_ip = info.num_storage_ip;
@@ -673,11 +677,13 @@ impl PostFlopGame {
         node_index: usize,
         action_node: &ActionTreeNode,
         info: &mut BuildTreeInfo,
+        buffer: &mut BufferContainer
     )
     {
         let mut node = self.node_arena[node_index].lock();
         node.player = action_node.player;
         node.amount = action_node.amount;
+        buffer.package_buffer[node_index] = action_node.actions.clone();
 
         if node.is_terminal() {
             return;
@@ -687,7 +693,7 @@ impl PostFlopGame {
             self.push_chances(node_index, info);
             for action_index in 0..node.num_actions() {
                 let child_index = node_index + node.children_offset as usize + action_index;
-                self.build_tree_recursive(child_index, &action_node.children[0].lock(), info);
+                self.build_tree_recursive(child_index, &action_node.children[0].lock(), info, buffer);
             }
         } else {
             self.push_actions(node_index, action_node, info);
@@ -697,14 +703,21 @@ impl PostFlopGame {
                     child_index,
                     &action_node.children[action_index].lock(),
                     info,
+                    buffer
                 );
             }
+        }
+    }
 
-            let p_actions = action_node.actions;
+    // ONE THREAD AT A TIME PLEASE
+    fn lock_them_nodes(&self, buffer: &BufferContainer)
+    {
+        for node_id in 0..self.node_arena.len()
+        {
+            let p_actions = buffer.package_buffer[node_id].clone();
+            let mut node = self.node_arena[node_id].lock();
 
-            apply_nodelocks(&mut node, &mut self, p_actions);
-
-            node
+            push_nodelocks(&mut node, self, p_actions);
         }
     }
 
@@ -1449,8 +1462,13 @@ impl PostFlopGame {
     }
 }
 
-fn push_nodelocks (node: &mut MutexGuardLike<'_, PostFlopNode>, game: &mut PostFlopGame, mut p_actions: Vec<PackagedAction>)
+fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, mut p_actions: Vec<PackagedAction>)
 {
+    let mut r_storage = game.rstorage.lock();
+    let mut l_storage = game.lstorage.lock();
+    let mut mr_storage = game.mlstorage.lock();
+    let mut ml_storage = game.mrstorage.lock();
+
     let mut mr_data: Vec<u32> = vec![]; // offsets for the ranges of one specific node
     let mut ml_data: Vec<u32> = vec![]; // same, but for limits
 
@@ -1505,14 +1523,14 @@ fn push_nodelocks (node: &mut MutexGuardLike<'_, PostFlopNode>, game: &mut PostF
                     size_of::<[i8; RANGESIZE]>()) // seethe
             };
 
-            game.rstorage.extend_from_slice(range_bytes);
-            game.lstorage.extend_from_slice(limit_bytes);
+            r_storage.extend_from_slice(range_bytes);
+            l_storage.extend_from_slice(limit_bytes);
 
-            let aligned_len_r = align_up(game.rstorage.len());
-            game.rstorage.resize(aligned_len_r, 0);
+            let aligned_len_r = align_up(r_storage.len());
+            r_storage.resize(aligned_len_r, 0);
 
-            let aligned_len_l = align_up(game.lstorage.len());
-            game.lstorage.resize(aligned_len_l, 0);
+            let aligned_len_l = align_up(l_storage.len());
+            l_storage.resize(aligned_len_l, 0);
         }
 
         let r_loc = (target as usize * size_of::<f32>() * RANGESIZE) as u32;
@@ -1535,22 +1553,22 @@ fn push_nodelocks (node: &mut MutexGuardLike<'_, PostFlopNode>, game: &mut PostF
 
     // saving the offset packages into mem megastorages
 
-    let mr_loc = game.mrstorage.len();
-    let ml_loc = game.mlstorage.len();
+    let mr_loc = mr_storage.len();
+    let ml_loc = ml_storage.len();
 
-    game.mrstorage.extend_from_slice(memrange_bytes);
-    game.mlstorage.extend_from_slice(memlimit_bytes);
+    mr_storage.extend_from_slice(memrange_bytes);
+    ml_storage.extend_from_slice(memlimit_bytes);
 
-    let aligned_len_mr = align_up(game.mrstorage.len());
-    game.mrstorage.resize(aligned_len_mr, 0);
+    let aligned_len_mr = align_up(mr_storage.len());
+    mr_storage.resize(aligned_len_mr, 0);
             
-    let aligned_len_ml = align_up(game.mlstorage.len());
-    game.mlstorage.resize(aligned_len_ml, 0);
+    let aligned_len_ml = align_up(ml_storage.len());
+    ml_storage.resize(aligned_len_ml, 0);
     
     // saving the pointer to node-related offset packages into the node itself
 
-    node.mrstorage = unsafe {game.mrstorage.as_mut_ptr().add(mr_loc)};
-    node.mlstorage = unsafe {game.mrstorage.as_mut_ptr().add(ml_loc)};
+    node.mrstorage = unsafe {mr_storage.as_mut_ptr().add(mr_loc)};
+    node.mlstorage = unsafe {ml_storage.as_mut_ptr().add(ml_loc)};
     
     fn apply_range (p_actions: PackagedAction, mut end_range: [f32; RANGESIZE], mut end_limit: [i8; RANGESIZE]) -> ([f32; RANGESIZE], [i8; RANGESIZE])
     {
