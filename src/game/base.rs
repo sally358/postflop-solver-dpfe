@@ -1472,6 +1472,9 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
     let mut mr_data: Vec<u32> = vec![]; // offsets for the ranges of one specific node
     let mut ml_data: Vec<u32> = vec![]; // same, but for limits
 
+    let mut r_hashes = game.rhashes.lock();
+    let mut l_hashes = game.lhashes.lock();
+
     for mut packaged_action in p_actions
     {
         let mut end_range: [f32; RANGESIZE] = [0.0; RANGESIZE];
@@ -1496,9 +1499,9 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
         let mut target: isize = -1;
 
-        for t in 0..game.rhashes.len()
+        for t in 0..r_hashes.len()
         {
-            if game.rhashes[t] == range_hash && game.lhashes[t] == limit_hash
+            if r_hashes[t] == range_hash && l_hashes[t] == limit_hash
             {
                 target = t as isize;
                 break;
@@ -1507,10 +1510,10 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
         if target == -1
         {
-            target = game.rhashes.len() as isize;
+            target = r_hashes.len() as isize;
 
-            game.rhashes.push(range_hash);
-            game.lhashes.push(limit_hash);
+            r_hashes.push(range_hash);
+            l_hashes.push(limit_hash);
 
             let range_bytes = unsafe {
                 std::slice::from_raw_parts(
