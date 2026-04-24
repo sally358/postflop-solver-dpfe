@@ -7,11 +7,11 @@ use std::any::TypeId;
 pub trait Game: Send + Sync {
     /// The type representing a node in game tree.
     #[doc(hidden)]
-    type Node: GameNode;
+    type P: GamePair;
 
     /// Returns the root node of game tree.
     #[doc(hidden)]
-    fn root(&self) -> MutexGuardLike<Self::Node>;
+    fn root(&self) -> MutexGuardLike<<Self::P as GamePair>::G>;
 
     /// Returns the number of private hands of given player.
     #[doc(hidden)]
@@ -26,14 +26,14 @@ pub trait Game: Send + Sync {
     fn evaluate(
         &self,
         result: &mut [MaybeUninit<f32>],
-        node: &Self::Node,
+        node: &<Self::P as GamePair>::N,
         player: usize,
         cfreach: &[f32],
     );
 
     /// Returns the effective number of chances.
     #[doc(hidden)]
-    fn chance_factor(&self, node: &Self::Node) -> usize;
+    fn chance_factor(&self, node: &<Self::P as GamePair>::N) -> usize;
 
     /// Returns whether the instance is solved.
     #[doc(hidden)]
@@ -57,13 +57,13 @@ pub trait Game: Send + Sync {
 
     /// Returns the list of indices that isomorphic chances refer to.
     #[doc(hidden)]
-    fn isomorphic_chances(&self, _node: &Self::Node) -> &[u8] {
+    fn isomorphic_chances(&self, _node: &<Self::P as GamePair>::N) -> &[u8] {
         &[]
     }
 
     /// Returns the swap list of the given isomorphic chance.
     #[doc(hidden)]
-    fn isomorphic_swap(&self, _node: &Self::Node, _index: usize) -> &[Vec<(u16, u16)>; 2] {
+    fn isomorphic_swap(&self, _node: &<Self::P as GamePair>::N, _index: usize) -> &[Vec<(u16, u16)>; 2] {
         unreachable!()
     }
 
@@ -76,7 +76,7 @@ pub trait Game: Send + Sync {
 
 /// The trait representing a node in game tree.
 pub trait GameNode: Send + Sync {
-    type G: Game;
+    type P: GamePair;
 
     /// Returns whether the node is terminal.
     #[doc(hidden)]
@@ -292,10 +292,15 @@ pub trait GameNode: Send + Sync {
 
     // Returns nodelocking ranges
     #[doc(hidden)]
-    fn my_end_range(&self, game: Self::G) -> Vec<f32>;
+    fn my_end_range(&self, game: &<Self::P as GamePair>::G) -> Vec<f32>;
 
     // returns nodelocking limit
     #[doc(hidden)]
-    fn my_end_limit(&self, game: Self::G) -> Vec<i8>;
+    fn my_end_limit(&self, game: &<Self::P as GamePair>::G) -> Vec<i8>;
     
+}
+
+pub trait GamePair: Send + Sync {
+    type G: Game;
+    type N: GameNode;
 }
