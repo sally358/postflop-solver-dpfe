@@ -21,10 +21,10 @@ struct BuildTreeInfo {
 }
 
 impl Game for PostFlopGame {
-    type Node = PostFlopNode;
+    type P = PostFlopPair;
 
     #[inline]
-    fn root(&self) -> MutexGuardLike<Self::Node> {
+    fn root(&self) -> MutexGuardLike<<PostFlopPair as GamePair>::N> {
         self.node_arena[0].lock()
     }
 
@@ -42,7 +42,7 @@ impl Game for PostFlopGame {
     fn evaluate(
         &self,
         result: &mut [MaybeUninit<f32>],
-        node: &Self::Node,
+        node: &<PostFlopPair as GamePair>::N,
         player: usize,
         cfreach: &[f32],
     ) {
@@ -54,7 +54,7 @@ impl Game for PostFlopGame {
     }
 
     #[inline]
-    fn chance_factor(&self, node: &Self::Node) -> usize {
+    fn chance_factor(&self, node: &<PostFlopPair as GamePair>::N) -> usize {
         if node.turn == NOT_DEALT {
             45 - self.bunching_num_dead_cards
         } else {
@@ -85,7 +85,7 @@ impl Game for PostFlopGame {
     }
 
     #[inline]
-    fn isomorphic_chances(&self, node: &Self::Node) -> &[u8] {
+    fn isomorphic_chances(&self, node: &<PostFlopPair as GamePair>::N) -> &[u8] {
         if node.turn == NOT_DEALT {
             &self.isomorphism_ref_turn
         } else {
@@ -94,7 +94,7 @@ impl Game for PostFlopGame {
     }
 
     #[inline]
-    fn isomorphic_swap(&self, node: &Self::Node, index: usize) -> &[Vec<(u16, u16)>; 2] {
+    fn isomorphic_swap(&self, node: &<PostFlopPair as GamePair>::N, index: usize) -> &[Vec<(u16, u16)>; 2] {
         if node.turn == NOT_DEALT {
             &self.isomorphism_swap_turn[self.isomorphism_card_turn[index] as usize & 3]
         } else {
@@ -673,7 +673,8 @@ impl PostFlopGame {
         node_index: usize,
         action_node: &ActionTreeNode,
         info: &mut BuildTreeInfo,
-    ) {
+    )
+    {
         let mut node = self.node_arena[node_index].lock();
         node.player = action_node.player;
         node.amount = action_node.amount;
@@ -698,6 +699,12 @@ impl PostFlopGame {
                     info,
                 );
             }
+
+            let p_actions = action_node.actions;
+
+            apply_nodelocks(&mut node, &mut self, p_actions);
+
+            node
         }
     }
 
@@ -1442,75 +1449,110 @@ impl PostFlopGame {
     }
 }
 
-fn apply_nodelocks (node: &mut PostFlopNode, game: &mut PostFlopGame, mut p_actions: PackagedAction) // -> (Option<[f32; 52 * 51 / 2]>, Option<[i8; 52 * 51 / 2]>)
+fn push_nodelocks (node: &mut MutexGuardLike<'_, PostFlopNode>, game: &mut PostFlopGame, mut p_actions: Vec<PackagedAction>)
 {
-    const SIZE: usize = 52*51 / 2;
+    let mut mr_data: Vec<u32> = vec![]; // offsets for the ranges of one specific node
+    let mut ml_data: Vec<u32> = vec![]; // same, but for limits
 
-    let mut end_range: [f32; SIZE] = [0.0; SIZE];
-    let mut end_limit: [i8; SIZE] = [1; SIZE];
-
-    p_actions.sort_rules();
-
-    apply_range(p_actions, &mut end_range, &mut end_limit);
-
-    let range_bits: Vec<u32> = end_range.iter().map(|f| f.to_bits()).collect();
-
-    let mut hasher: DefaultHasher;
-
-    hasher = DefaultHasher::new();
-    range_bits.hash(&mut hasher);
-    let range_hash = hasher.finish();
-
-    hasher = DefaultHasher::new();
-    end_limit.hash(&mut hasher);
-    let limit_hash = hasher.finish();
-
-    let mut target: isize = -1;
-
-    for t in 0..game.rhashes.len()
+    for mut packaged_action in p_actions
     {
-        if game.rhashes[t] == range_hash && game.lhashes[t] == limit_hash
+        let mut end_range: [f32; RANGESIZE] = [0.0; RANGESIZE];
+        let mut end_limit: [i8; RANGESIZE] = [1; RANGESIZE];
+
+        packaged_action.sort_rules();
+
+        // THIS IS PROVISIONAL FOR NOW. RULELOCKING WILL BE ADDED HERE.
+        (end_range, end_limit) = apply_range(packaged_action, end_range, end_limit);
+
+        let range_bits: Vec<u32> = end_range.iter().map(|f| f.to_bits()).collect();
+
+        let mut hasher: DefaultHasher;
+
+        hasher = DefaultHasher::new();
+        range_bits.hash(&mut hasher);
+        let range_hash = hasher.finish();
+
+        hasher = DefaultHasher::new();
+        end_limit.hash(&mut hasher);
+        let limit_hash = hasher.finish();
+
+        let mut target: isize = -1;
+
+        for t in 0..game.rhashes.len()
         {
-            target = t as isize;
-            break;
+            if game.rhashes[t] == range_hash && game.lhashes[t] == limit_hash
+            {
+                target = t as isize;
+                break;
+            }
         }
+
+        if target == -1
+        {
+            target = game.rhashes.len() as isize;
+
+            game.rhashes.push(range_hash);
+            game.lhashes.push(limit_hash);
+
+            let range_bytes = unsafe {
+                std::slice::from_raw_parts(
+                    end_range.as_ptr() as *const u8, 
+                    size_of::<[f32; RANGESIZE]>())
+            };
+            let limit_bytes = unsafe {
+                std::slice::from_raw_parts(
+                    end_limit.as_ptr() as *const u8, 
+                    size_of::<[i8; RANGESIZE]>()) // seethe
+            };
+
+            game.rstorage.extend_from_slice(range_bytes);
+            game.lstorage.extend_from_slice(limit_bytes);
+
+            let aligned_len_r = align_up(game.rstorage.len());
+            game.rstorage.resize(aligned_len_r, 0);
+
+            let aligned_len_l = align_up(game.lstorage.len());
+            game.lstorage.resize(aligned_len_l, 0);
+        }
+
+        let r_loc = (target as usize * size_of::<f32>() * RANGESIZE) as u32;
+        let l_loc = (target as usize * size_of::<i8>() * RANGESIZE) as u32; // sizeof here is for pure flex
+
+        mr_data.push(r_loc);
+        ml_data.push(l_loc);
     }
 
-    if target == -1
-    {
-        target = game.rhashes.len() as isize;
+    let memrange_bytes = unsafe {
+        std::slice::from_raw_parts(
+            mr_data.as_ptr() as *const u8, 
+            size_of::<u32>() * mr_data.len())
+    };
+    let memlimit_bytes = unsafe {
+        std::slice::from_raw_parts(
+            ml_data.as_ptr() as *const u8, 
+            size_of::<u32>() * ml_data.len()) // seethe
+    };
 
-        game.rhashes.push(range_hash);
-        game.lhashes.push(limit_hash);
+    // saving the offset packages into mem megastorages
 
-        let range_bytes = unsafe {
-            std::slice::from_raw_parts(
-                end_range.as_ptr() as *const u8, 
-                size_of::<[f32; SIZE]>())
-        };
-        let limit_bytes = unsafe {
-            std::slice::from_raw_parts(
-                end_limit.as_ptr() as *const u8, 
-                size_of::<[i8; SIZE]>()) // seethe
-        };
+    let mr_loc = game.mrstorage.len();
+    let ml_loc = game.mlstorage.len();
 
-        game.rstorage.extend_from_slice(range_bytes);
-        game.lstorage.extend_from_slice(limit_bytes);
+    game.mrstorage.extend_from_slice(memrange_bytes);
+    game.mlstorage.extend_from_slice(memlimit_bytes);
 
-        let aligned_len_r = align_up(game.rstorage.len());
-        game.rstorage.resize(aligned_len_r, 0);
-
-        let aligned_len_l = align_up(game.lstorage.len());
-        game.lstorage.resize(aligned_len_l, 0);
-    }
-
-    let r_loc = (target as usize * size_of::<f32>()) + 1;
-    let l_loc = (target as usize * size_of::<i8>()) + 1; // because yes
-
-    node.rstorage = unsafe {game.rstorage.as_mut_ptr().add(r_loc)};
-    node.lstorage = unsafe {game.lstorage.as_mut_ptr().add(l_loc)};
+    let aligned_len_mr = align_up(game.mrstorage.len());
+    game.mrstorage.resize(aligned_len_mr, 0);
+            
+    let aligned_len_ml = align_up(game.mlstorage.len());
+    game.mlstorage.resize(aligned_len_ml, 0);
     
-    fn apply_range (p_actions: PackagedAction, end_range: &mut [f32; 52*51 / 2], end_limit: &mut [i8; 52*51 / 2])
+    // saving the pointer to node-related offset packages into the node itself
+
+    node.mrstorage = unsafe {game.mrstorage.as_mut_ptr().add(mr_loc)};
+    node.mlstorage = unsafe {game.mrstorage.as_mut_ptr().add(ml_loc)};
+    
+    fn apply_range (p_actions: PackagedAction, mut end_range: [f32; RANGESIZE], mut end_limit: [i8; RANGESIZE]) -> ([f32; RANGESIZE], [i8; RANGESIZE])
     {
         if !p_actions.lock_range.is_none() 
         {
@@ -1578,8 +1620,11 @@ fn apply_nodelocks (node: &mut PostFlopNode, game: &mut PostFlopGame, mut p_acti
                 let index = card_pair_to_index(i as Card, j as Card);
                 end_range[index] = lock_range[i * 13 + j];
             } }
-        
+            
+            
         }
+
+        (end_range, end_limit)
     }
 }
 
