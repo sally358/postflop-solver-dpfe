@@ -391,114 +391,111 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn push_range_lock(&mut self, line: &[Action], lock_range: Vec<f32>, lock_limit: Vec<i8>) -> Result<(), String> {
-        let mut vine = line.to_vec();
+    pub fn push_range_lock_recursive // kill me
+    (
+        &mut self, 
+        line: &[Action], 
+        lock_range: Vec<f32>, 
+        lock_limit: Vec<i8>,
+        index: usize
+    ) -> Result<(), String> {
 
-        let mut current_node: &mut ActionTreeNode;
+        let vine = line.to_vec();
 
-        unsafe
-        {
-            current_node = self.root.yoink();
-        }
-         
+        let mut current_node: MutexGuardLike<ActionTreeNode>;
+        current_node = self.root.lock();
+        
 
         if vine.len() == 0
         {
             return Err("Empty tree in push_range_lock! How did we even get here?!".to_owned());
         }
         
-        while vine.len() > 1
+        if vine.len()-1 > index
         {
-            let action = vine[0];
-            vine.remove(0);
+            let action = vine[index];
             
-            let search_result = &current_node.actions.unpackage_all().binary_search(&action);
+            let search_result = current_node.actions.unpackage_all().binary_search(&action);
             
             if search_result.is_err() {
                 return Err(format!("Bro, this {action:?} is NOT a real action."));
             }
 
-            unsafe // nothing is truly safe in the real world
-            {
-                current_node = current_node.children[search_result.unwrap()].yoink();
-            }
+            return self.push_range_lock_recursive(line, lock_range, lock_limit, index+1);
         }
-        
-        let action = vine[0];
-        let mut success = false;
-
-        let arrange: [f32; 13 * 13] = lock_range.try_into().expect("What is this range size?! This is not how this works.");
-        let arrimit: [i8; 13 * 13] = lock_limit.try_into().expect("What is this limit range size?! This is not how this works.");
-
-
-        for i in 0..current_node.actions.len()
+        else
         {
-            if current_node.actions[i].action == action
-            {
-                
-                current_node.actions[i].lock_range = Some(arrange);
-                current_node.actions[i].lock_limit = Some(arrimit);
-
-                success = true;
-            }
-        }
-        
-        if !success
-        {
-            return Err("Can't find shit in this garbage, I quit.".to_owned());
-        }
             
-        Ok(())
+            let action = vine[index];
+            let mut success = false;
+
+            let arrange: [f32; 13 * 13] = lock_range.try_into().expect("What is this range size?! This is not how this works.");
+            let arrimit: [i8; 13 * 13] = lock_limit.try_into().expect("What is this limit range size?! This is not how this works.");
+
+
+            for i in 0..current_node.actions.len()
+            {
+                if current_node.actions[i].action == action
+                {
+                    
+                    current_node.actions[i].lock_range = Some(arrange);
+                    current_node.actions[i].lock_limit = Some(arrimit);
+
+                    success = true;
+                }
+            }
+            
+            if !success
+            {
+                return Err("Can't find shit in this garbage, I quit.".to_owned());
+            }
+            
+            Ok(())
+        }
     }
+
 
     /// Should technically pull a range lock mask and limits from a node
     ///
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn pull_range_lock(&mut self, line: &[Action]) -> (Option<Vec<f32>>, Option<Vec<i8>>) {
-        let mut vine = line.to_vec();
+    pub fn pull_range_lock_recursive(&mut self, line: &[Action], index: usize) -> (Option<Vec<f32>>, Option<Vec<i8>>) {
+        let vine = line.to_vec();
 
-        let mut current_node: &mut ActionTreeNode;
-
-        unsafe
-        {
-            current_node = self.root.yoink();
-        }
+        let current_node: MutexGuardLike<ActionTreeNode>;
+        current_node = self.root.lock();
          
-
         if vine.len() == 0
         {
             panic!("Empty tree in pull_range_lock! How did we even get here?!");
         }
         
-        while vine.len() > 1
+        if vine.len()-1 > index
         {
-            let action = vine[0];
-            vine.remove(0);
+            let action = vine[index];
             
-            let search_result = &current_node.actions.unpackage_all().binary_search(&action);
+            let search_result = current_node.actions.unpackage_all().binary_search(&action);
             if search_result.is_err() {
                 panic!("Bro, this is NOT a real action. Can't pull that!");
             }
 
-            unsafe // nothing is truly safe in the real world
-            {
-                current_node = current_node.children[search_result.unwrap()].yoink();
-            }
+            return self.pull_range_lock_recursive(line, index+1);
         }
-        
-        let action = vine[0];
-
-        for i in 0..current_node.actions.len()
+        else
         {
-            if current_node.actions[i].action == action
+            let action = vine[index];
+
+            for i in 0..current_node.actions.len()
             {
-                return (current_node.actions[i].lock_range.map(|array| array.to_vec()), current_node.actions[i].lock_limit.map(|array| array.to_vec()));
+                if current_node.actions[i].action == action
+                {
+                    return (current_node.actions[i].lock_range.map(|array| array.to_vec()), current_node.actions[i].lock_limit.map(|array| array.to_vec()));
+                }
             }
+            
+            panic!("I'm too lazy to not panic this stuff");
         }
-        
-        panic!("I'm too lazy to not panic this stuff");
     }
 
     
@@ -507,26 +504,20 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn push_rule_lock(&mut self, line: &[Action], lock_rules: Option<Vec<RuleLock>>) -> Result<(), String> {
-        let mut vine = line.to_vec();
+    pub fn push_rule_lock_recursive(&mut self, line: &[Action], lock_rules: Option<Vec<RuleLock>>, index: usize) -> Result<(), String> {
+        let vine = line.to_vec();
 
-        let mut current_node: &mut ActionTreeNode;
-
-        unsafe
-        {
-            current_node = self.root.yoink();
-        }
-         
-
+        let mut current_node: MutexGuardLike<ActionTreeNode>;
+        current_node = self.root.lock();
+        
         if vine.len() == 0
         {
             return Err("Empty tree in push_range_lock! How did we even get here?!".to_owned());
         }
         
-        while vine.len() > 1
+        if vine.len() - 1 > index
         {
-            let action = vine[0];
-            vine.remove(0);
+            let action = vine[index];
             
             let search_result = &current_node.actions.unpackage_all().binary_search(&action);
             
@@ -534,34 +525,32 @@ impl ActionTree {
                 return Err(format!("Bro, this {action:?} is NOT a real action."));
             }
 
-            unsafe // nothing is truly safe in the real world
-            {
-                current_node = current_node.children[search_result.unwrap()].yoink();
-            }
+            return self.push_rule_lock_recursive(line, lock_rules, index+1);
         }
-        
-        let action = vine[0];
-        let mut success = false;
-
-        for i in 0..current_node.actions.len()
+        else
         {
-            if current_node.actions[i].action == action
+            let action = vine[index];
+            let mut success = false;
+
+            for i in 0..current_node.actions.len()
             {
-                
-                current_node.actions[i].lock_rules = lock_rules;
+                if current_node.actions[i].action == action
+                {
+                    
+                    current_node.actions[i].lock_rules = lock_rules;
 
-                success = true;
+                    success = true;
 
-                break;
+                    break;
+                }
             }
-        }
-        
-        if !success
-        {
-            return Err("Can't find shit in this garbage, I quit.".to_owned());
-        }
             
-        Ok(())
+            if !success
+            {
+                return Err("Can't find shit in this garbage, I quit.".to_owned());
+            }
+            Ok(())
+        }
     }
 
     /// Should technically pull a rules from a node
@@ -569,23 +558,19 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn pull_rule_lock(&mut self, line: &[Action]) -> Option<Vec<RuleLock>> {
+    pub fn pull_rule_lock_recursive(&mut self, line: &[Action], index: usize) -> Option<Vec<RuleLock>> {
         let mut vine = line.to_vec();
 
-        let mut current_node: &mut ActionTreeNode;
-
-        unsafe
-        {
-            current_node = self.root.yoink();
-        }
-         
+        let current_node: MutexGuardLike<ActionTreeNode>;
+        current_node = self.root.lock();
+        
 
         if vine.len() == 0
         {
             panic!("Empty tree in pull_range_lock! How did we even get here?!");
         }
         
-        while vine.len() > 1
+        if vine.len() - 1 > index
         {
             let action = vine[0];
             vine.remove(0);
@@ -595,23 +580,22 @@ impl ActionTree {
                 panic!("Bro, this is NOT a real action. Can't pull that!");
             }
 
-            unsafe // nothing is truly safe in the real world
-            {
-                current_node = current_node.children[search_result.unwrap()].yoink();
-            }
+            return self.pull_rule_lock_recursive(line, index+1);
         }
-        
-        let action = vine[0];
-
-        for i in 0..current_node.actions.len()
+        else
         {
-            if current_node.actions[i].action == action
+            let action = vine[index];
+
+            for i in 0..current_node.actions.len()
             {
-                return current_node.actions[i].lock_rules.clone();
+                if current_node.actions[i].action == action
+                {
+                    return current_node.actions[i].lock_rules.clone();
+                }
             }
+            
+            panic!("I'm too lazy to not panic this stuff");
         }
-        
-        panic!("I'm too lazy to not panic this stuff");
     }
 
     /// Moves back to the root node.
@@ -741,7 +725,7 @@ impl ActionTree {
     pub fn push_range_lock_on_current_node(&mut self, lock_range: Vec<f32>, lock_limit: Vec<i8>) -> Result<(), String> 
     {
         let history = self.history.clone();
-        self.push_range_lock(&history, lock_range, lock_limit)
+        self.push_range_lock_recursive(&history, lock_range, lock_limit, 0)
     }
 
     /// Pulls range masks from the current line.
@@ -752,7 +736,7 @@ impl ActionTree {
     pub fn pull_range_lock_from_current_node(&mut self) ->  (Option<Vec<f32>>, Option<Vec<i8>>) 
     {
         let history = self.history.clone();
-        self.pull_range_lock(&history)
+        self.pull_range_lock_recursive(&history, 0)
     }
 
     /// Pushes rules onto the current line.
@@ -763,7 +747,7 @@ impl ActionTree {
     pub fn push_rule_lock_on_current_node(&mut self, lock_rules: Option<Vec<RuleLock>>) -> Result<(), String> 
     {
         let history = self.history.clone();
-        self.push_rule_lock(&history, lock_rules)
+        self.push_rule_lock_recursive(&history, lock_rules, 0)
     }
 
     /// Pulls rules from the current line.
@@ -774,7 +758,7 @@ impl ActionTree {
     pub fn pull_rule_lock_from_current_node(&mut self) ->  Option<Vec<RuleLock>>
     {
         let history = self.history.clone();
-        self.pull_rule_lock(&history)
+        self.pull_rule_lock_recursive(&history, 0)
     }
 
     
