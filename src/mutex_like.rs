@@ -51,13 +51,14 @@ impl<T> MutexLike<T> {
     }
 
     #[inline]
-    pub fn into_inner(self) -> T { // I HATE MUTEX LIKES I HATE MUTEX LIKES
+    pub fn into_inner(self) -> T { 
         self.data.into_inner()
     }
 
+    // allows to get immutable data from a mutexlike without ugly lock deref sequence
     #[inline]
-    pub unsafe fn yoink<'a>(&mut self) -> &'a mut T { // I HATE MUTEX LIKES I HATE MUTEX LIKES
-        &mut (*self.data.get())
+    pub unsafe fn yoink<'a>(&self) -> &T { 
+        &(*self.data.get())
     }
 
 }
