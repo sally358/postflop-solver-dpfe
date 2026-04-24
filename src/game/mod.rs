@@ -158,5 +158,9 @@ pub struct PostFlopNode {
     storage3: *mut u8, // IP cfvalues
 }
 
+pub struct PostFlopPair {
+
+}
+
 unsafe impl Send for PostFlopNode {}
 unsafe impl Sync for PostFlopNode {}
