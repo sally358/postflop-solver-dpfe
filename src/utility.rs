@@ -368,14 +368,19 @@ pub fn compute_mes_ev<T: Game>(game: &T) -> [f32; 2] {
 }
 
 /// The recursive helper function for computing the counterfactual values of the given strategy.
-fn compute_cfvalue_recursive<T: Game>(
+fn compute_cfvalue_recursive<T: GamePair>(
     result: &mut [MaybeUninit<f32>],
-    game: &T,
-    node: &mut T::Node,
+    game: &mut T::G,
+    node: &mut T::N,
     player: usize,
     cfreach: &[f32],
     save_cfvalues: bool,
-) {
+) 
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: Game<P = T>
+{
     // terminal node
     if node.is_terminal() {
         game.evaluate(result, node, player, cfreach);
@@ -573,13 +578,18 @@ fn compute_cfvalue_recursive<T: Game>(
 }
 
 /// The recursive helper function for computing the counterfactual values of best response.
-fn compute_best_cfv_recursive<T: Game>(
+fn compute_best_cfv_recursive<T: GamePair>(
     result: &mut [MaybeUninit<f32>],
-    game: &T,
-    node: &T::Node,
+    game: &T::G,
+    node: &T::N,
     player: usize,
     cfreach: &[f32],
-) {
+)
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: Game<P = T>
+{
     // terminal node
     if node.is_terminal() {
         game.evaluate(result, node, player, cfreach);
