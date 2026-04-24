@@ -103,14 +103,14 @@ pub struct PostFlopGame {
     storage_ip: Vec<u8>,
     storage_chance: Vec<u8>,
 
-    rstorage: Vec<u8>, // nodelocking range game storage
-    lstorage: Vec<u8>, // nodelocking limit game storage
+    rstorage: MutexLike<Vec<u8>>, // nodelocking range game storage
+    lstorage: MutexLike<Vec<u8>>, // nodelocking limit game storage
 
-    mrstorage: Vec<u8>, // packages of range offsets
-    mlstorage: Vec<u8>, // packages of limit offsets
+    mrstorage: MutexLike<Vec<u8>>, // packages of range offsets
+    mlstorage: MutexLike<Vec<u8>>, // packages of limit offsets
 
-    rhashes: Vec<u64>,
-    lhashes: Vec<u64>,
+    rhashes: MutexLike<Vec<u64>>,
+    lhashes: MutexLike<Vec<u64>>,
 
     locking_strategy: BTreeMap<usize, Vec<f32>>,
 
@@ -160,6 +160,10 @@ pub struct PostFlopNode {
 
 pub struct PostFlopPair {
 
+}
+
+pub struct BufferContainer {
+    package_buffer: Vec<Vec<PackagedAction>>
 }
 
 unsafe impl Send for PostFlopNode {}
