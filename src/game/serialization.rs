@@ -172,7 +172,7 @@ impl Encode for PostFlopGame {
         // store base pointers
         PTR_BASE.with(|c| {
             if self.state >= State::MemoryAllocated {
-                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr(), unsafe{ self.rstorage.yoink().as_ptr() }, unsafe {self.lstorage.yoink().as_ptr()}]);
+                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr(), unsafe{ self.rstorage.yoink().as_ptr() as *const u8 }, unsafe {self.lstorage.yoink().as_ptr() as *const u8}]);
             } else {
                 c.set([ptr::null(); 4]);
             }
@@ -246,8 +246,8 @@ impl Decode for PostFlopGame {
                     game.storage1.as_mut_ptr(),
                     game.storage2.as_mut_ptr(),
                     game.storage_ip.as_mut_ptr(),
-                    r_storage.as_mut_ptr(),
-                    l_storage.as_mut_ptr()
+                    r_storage.as_mut_ptr() as *mut u8,
+                    l_storage.as_mut_ptr() as *mut u8
                 ]);
             } else {
                 c.set([ptr::null_mut(); 5]);
@@ -310,8 +310,8 @@ impl Encode for PostFlopNode {
                 unsafe {
                     self.storage1.offset_from(bases[0]).encode(encoder)?;
                     self.storage3.offset_from(bases[1]).encode(encoder)?;
-                    self.mrstorage.offset_from(bases[2]).encode(encoder)?;
-                    self.mlstorage.offset_from(bases[3]).encode(encoder)?;
+                    self.mrstorage.offset_from(bases[2] as *mut u32).encode(encoder)?;
+                    self.mlstorage.offset_from(bases[3] as *mut u32).encode(encoder)?;
                 }
             }
         }
@@ -359,8 +359,8 @@ impl Decode for PostFlopNode {
                 node.storage1 = unsafe { bases[0].offset(offset) };
                 node.storage2 = unsafe { bases[1].offset(offset) };
                 node.storage3 = unsafe { bases[2].offset(offset_ip) };
-                node.mrstorage = unsafe { bases[3].offset(offset_mr) };
-                node.mlstorage = unsafe { bases[3].offset(offset_ml) };
+                node.mrstorage = unsafe { (bases[3] as *mut u32).offset(offset_mr) };
+                node.mlstorage = unsafe { (bases[3] as *mut u32).offset(offset_ml) };
             }
         }
 
