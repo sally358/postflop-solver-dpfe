@@ -59,15 +59,15 @@ impl PostFlopGame {
     }
 
     /// Returns the number of storage elements required for the target storage mode.
-    fn num_target_storage(&self) -> [usize; 4] {
+    fn num_target_storage(&self) -> [usize; 5] {
         if self.state <= State::TreeBuilt {
-            return [0; 4];
+            return [0; 5];
         }
 
         let num_bytes = if self.is_compression_enabled { 2 } else { 4 };
         if self.target_storage_mode == BoardState::River {
             // omit storing the counterfactual values
-            return [num_bytes * self.num_storage as usize, 0, 0, 0];
+            return [num_bytes * self.num_storage as usize, 0, 0, 0, 0];
         }
 
         let mut node_index = match self.target_storage_mode {
@@ -75,7 +75,7 @@ impl PostFlopGame {
             _ => self.num_nodes[0] + self.num_nodes[1],
         } as usize;
 
-        let mut num_storage = [0; 4];
+        let mut num_storage = [0; 5]; //
 
         while num_storage.iter().any(|&x| x == 0) {
             node_index -= 1;
@@ -87,12 +87,20 @@ impl PostFlopGame {
 
                 let offset = unsafe { node.storage1.offset_from(self.storage1.as_ptr()) };
                 let offset_ip = unsafe { node.storage3.offset_from(self.storage_ip.as_ptr()) };
+                let offset_mr = unsafe { node.mrstorage.offset_from(self.mrstorage.yoink().as_ptr()) };
+                let offset_ml = unsafe { node.mlstorage.offset_from(self.mlstorage.yoink().as_ptr()) };
 
                 let len = num_bytes * node.num_elements as usize;
                 let len_ip = num_bytes * node.num_elements_ip as usize;
+                
+                let len_mr = 32 * node.num_actions();
+                let len_ml = 32 * node.num_actions();
+                
                 num_storage[0] = offset as usize + len;
                 num_storage[1] = offset as usize + len;
                 num_storage[2] = offset_ip as usize + len_ip;
+                num_storage[3] = offset_mr as usize + len_mr;
+                num_storage[4] = offset_ml as usize + len_ml;
             }
 
             if num_storage[3] == 0 && node.is_chance() {
@@ -144,6 +152,11 @@ impl Encode for PostFlopGame {
         self.storage2[0..num_storage[1]].encode(encoder)?;
         self.storage_ip[0..num_storage[2]].encode(encoder)?;
         self.storage_chance[0..num_storage[3]].encode(encoder)?;
+        
+        unsafe {
+            self.rstorage.yoink()[0..num_storage[4]].encode(encoder);
+            self.lstorage.yoink()[0..num_storage[5]].encode(encoder);
+        }
 
         let num_nodes = match self.target_storage_mode {
             BoardState::Flop => self.num_nodes[0] as usize,
@@ -159,7 +172,7 @@ impl Encode for PostFlopGame {
         // store base pointers
         PTR_BASE.with(|c| {
             if self.state >= State::MemoryAllocated {
-                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr(), self.rstorage.as_ptr(), self.lstorage.as_ptr()]);
+                c.set([self.storage1.as_ptr(), self.storage_ip.as_ptr(), unsafe{ self.rstorage.yoink().as_ptr() }, unsafe {self.lstorage.yoink().as_ptr()}]);
             } else {
                 c.set([ptr::null(); 4]);
             }
@@ -209,6 +222,8 @@ impl Decode for PostFlopGame {
             storage2: Decode::decode(decoder)?,
             storage_ip: Decode::decode(decoder)?,
             storage_chance: Decode::decode(decoder)?,
+            lstorage: MutexLike::new(Decode::decode(decoder)?),
+            rstorage: MutexLike::new(Decode::decode(decoder)?),
             locking_strategy: Decode::decode(decoder)?,
             ..Default::default()
         };
@@ -228,8 +243,8 @@ impl Decode for PostFlopGame {
                     game.storage1.as_mut_ptr(),
                     game.storage2.as_mut_ptr(),
                     game.storage_ip.as_mut_ptr(),
-                    game.rstorage.as_mut_ptr(),
-                    game.lstorage.as_mut_ptr()
+                    unsafe {game.rstorage.yoink().as_mut_ptr()},
+                    unsafe {game.lstorage.yoink().as_mut_ptr()}
                 ]);
             } else {
                 c.set([ptr::null_mut(); 5]);
@@ -292,8 +307,8 @@ impl Encode for PostFlopNode {
                 unsafe {
                     self.storage1.offset_from(bases[0]).encode(encoder)?;
                     self.storage3.offset_from(bases[1]).encode(encoder)?;
-                    self.rstorage.offset_from(bases[2]).encode(encoder)?;
-                    self.lstorage.offset_from(bases[3]).encode(encoder)?;
+                    self.mrstorage.offset_from(bases[2]).encode(encoder)?;
+                    self.mlstorage.offset_from(bases[3]).encode(encoder)?;
                 }
             }
         }
@@ -335,9 +350,14 @@ impl Decode for PostFlopNode {
             if !bases[0].is_null() {
                 let offset = isize::decode(decoder)?;
                 let offset_ip = isize::decode(decoder)?;
+                let offset_mr = isize::decode(decoder)?;
+                let offset_ml = isize::decode(decoder)?;
+
                 node.storage1 = unsafe { bases[0].offset(offset) };
                 node.storage2 = unsafe { bases[1].offset(offset) };
                 node.storage3 = unsafe { bases[2].offset(offset_ip) };
+                node.mrstorage = unsafe { bases[3].offset(offset_mr) };
+                node.mlstorage = unsafe { bases[3].offset(offset_ml) };
             }
         }
 
