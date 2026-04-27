@@ -22,7 +22,7 @@ fn all_check_all_range() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -115,7 +115,7 @@ fn one_raise_all_range() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -220,7 +220,7 @@ fn one_raise_all_range_compressed() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(true);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -327,7 +327,7 @@ fn one_raise_all_range_with_turn() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -364,7 +364,7 @@ fn one_raise_all_range_with_river() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -455,7 +455,7 @@ fn always_win() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -516,7 +516,7 @@ fn always_win_raked() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -567,7 +567,7 @@ fn always_lose() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -605,7 +605,7 @@ fn always_lose_raked() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -635,7 +635,7 @@ fn always_tie() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -671,7 +671,7 @@ fn always_tie_raked() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -781,7 +781,7 @@ fn remove_lines() {
     );
 
     // check that `solve()` does not crash
-    solve(&mut game, 10, 0.01, false);
+    solve::<PostFlopPair>(&mut game, 10, 0.01, false);
 }
 
 #[test]
@@ -805,7 +805,7 @@ fn isomorphism_monotone() {
     let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     let mut check = |history: &[usize],
                      expected_turn_swap: Option<u8>,
@@ -872,7 +872,7 @@ fn node_locking() {
     game.lock_current_strategy(&[0.25, 0.75]); // 25% fold, 75% call
     game.back_to_root();
 
-    solve(&mut game, 1000, 0.0, false);
+    solve::<PostFlopPair>(&mut game, 1000, 0.0, false);
     game.cache_normalized_weights();
 
     let ev_oop = game.expected_values(0);
@@ -892,7 +892,7 @@ fn node_locking() {
     game.lock_current_strategy(&[0.5, 0.5]); // 50% fold, 50% call
     game.back_to_root();
 
-    solve(&mut game, 1000, 0.0, false);
+    solve::<PostFlopPair>(&mut game, 1000, 0.0, false);
     game.cache_normalized_weights();
 
     let ev_oop = game.expected_values(0);
@@ -931,7 +931,7 @@ fn node_locking_partial() {
     game.allocate_memory(false);
     game.lock_current_strategy(&[0.8, 0.0, 0.0, 0.2, 0.0, 0.0]); // JJ -> 80% check, 20% all-in
 
-    solve(&mut game, 1000, 0.0, false);
+    solve::<PostFlopPair>(&mut game, 1000, 0.0, false);
     game.cache_normalized_weights();
 
     let ev_oop = game.expected_values(0);
@@ -972,7 +972,7 @@ fn node_locking_isomorphism() {
     game.apply_history(&[0, 0, 15, 0, 0, 14]); // Turn: Spades, River: Hearts
     game.lock_current_strategy(&[0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]); // AhKh -> check
 
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
     game.apply_history(&[0, 0, 13, 0, 0, 14]);
     assert_eq!(
@@ -1045,9 +1045,9 @@ fn set_bunching_effect() {
     game.set_bunching_effect(&bunching_data).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
-    let current_ev = compute_current_ev(&game);
+    let current_ev = compute_current_ev::<PostFlopPair>(&game);
     assert!((current_ev[0] - 7.5).abs() < 1e-4);
     assert!((current_ev[1] - -7.5).abs() < 1e-4);
 
@@ -1098,9 +1098,9 @@ fn set_bunching_effect_always_win() {
     game.set_bunching_effect(&bunching_data).unwrap();
 
     game.allocate_memory(false);
-    finalize(&mut game);
+    finalize::<PostFlopPair>(&mut game);
 
-    let current_ev = compute_current_ev(&game);
+    let current_ev = compute_current_ev::<PostFlopPair>(&game);
     assert!((current_ev[0] - 30.0).abs() < 1e-4);
     assert!((current_ev[1] - -30.0).abs() < 1e-4);
 
@@ -1179,7 +1179,7 @@ fn solve_pio_preset_normal() {
     );
     game.allocate_memory(false);
 
-    solve(&mut game, 1000, 180.0 * 0.001, true);
+    solve::<PostFlopPair>(&mut game, 1000, 180.0 * 0.001, true);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
@@ -1236,7 +1236,7 @@ fn solve_pio_preset_raked() {
     );
     game.allocate_memory(false);
 
-    solve(&mut game, 1000, 180.0 * 0.001, true);
+    solve::<PostFlopPair>(&mut game, 1000, 180.0 * 0.001, true);
 
     game.cache_normalized_weights();
     let weights_oop = game.normalized_weights(0);
