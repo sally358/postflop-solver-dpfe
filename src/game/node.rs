@@ -255,6 +255,19 @@ impl GameNode for PostFlopNode {
 
         l_vec
     }
+
+    fn my_boni(&self) -> Vec<u8> {
+        let mut boni = vec![] as Vec<u8>;
+        if self.turn != NOT_DEALT
+        {
+            boni.push(self.turn);
+        }
+        if self.river != NOT_DEALT
+        {
+            boni.push(self.river);
+        }
+        boni
+    }
 }
 
 impl Default for PostFlopNode {
