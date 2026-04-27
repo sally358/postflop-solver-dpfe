@@ -1507,7 +1507,7 @@ impl PostFlopGame {
     }
 }
 
-fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, mut p_actions: Vec<PackagedAction>)
+fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, p_actions: Vec<PackagedAction>)
 {
     let mut r_storage = game.rstorage.lock();
     let mut l_storage = game.lstorage.lock();
@@ -1542,24 +1542,21 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
         end_limit.hash(&mut hasher);
         let limit_hash = hasher.finish();
 
-        let mut target: isize = -1;
+        let mut r_loc: isize = -1;
+        let mut l_loc: isize = -1;
 
         for t in 0..r_hashes.len()
         {
-            if r_hashes[t] == range_hash && l_hashes[t] == limit_hash
+            if r_hashes[t].0 == range_hash && l_hashes[t].0 == limit_hash
             {
-                target = t as isize;
+                r_loc = r_hashes[t].1 as isize;
+                l_loc = l_hashes[t].1 as isize;
                 break;
             }
         }
 
-        if target == -1
+        if r_loc == -1
         {
-            target = r_hashes.len() as isize;
-
-            r_hashes.push(range_hash);
-            l_hashes.push(limit_hash);
-
             let range_bytes = unsafe {
                 std::slice::from_raw_parts(
                     end_range.as_ptr() as *const u8, 
@@ -1571,21 +1568,24 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                     size_of::<[i8; RANGESIZE]>()) // seethe
             };
 
-            r_storage.extend_from_slice(range_bytes);
-            l_storage.extend_from_slice(limit_bytes);
-
             let aligned_len_r = align_up(r_storage.len());
             r_storage.resize(aligned_len_r, 0);
 
             let aligned_len_l = align_up(l_storage.len());
             l_storage.resize(aligned_len_l, 0);
+
+            let r_loc = r_storage.len();
+            let l_loc = l_storage.len();
+
+            r_hashes.push((range_hash, r_loc));
+            l_hashes.push((limit_hash, l_loc));
+
+            r_storage.extend_from_slice(range_bytes);
+            l_storage.extend_from_slice(limit_bytes);
         }
 
-        let r_loc = (target as usize * size_of::<f32>() * RANGESIZE) as u32;
-        let l_loc = (target as usize * size_of::<i8>() * RANGESIZE) as u32; // sizeof here is for pure flex
-
-        mr_data.push(r_loc);
-        ml_data.push(l_loc);
+        mr_data.push(r_loc as u32);
+        ml_data.push(l_loc as u32);
     }
 
     let memrange_bytes = unsafe {
@@ -1599,6 +1599,13 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
             size_of::<u32>() * ml_data.len()) // seethe
     };
 
+    let aligned_len_mr = align_up(mr_storage.len());
+    mr_storage.resize(aligned_len_mr, 0);
+            
+    let aligned_len_ml = align_up(ml_storage.len());
+    ml_storage.resize(aligned_len_ml, 0);
+
+    
     // saving the offset packages into mem megastorages
 
     let mr_loc = mr_storage.len();
@@ -1606,12 +1613,6 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
     mr_storage.extend_from_slice(memrange_bytes);
     ml_storage.extend_from_slice(memlimit_bytes);
-
-    let aligned_len_mr = align_up(mr_storage.len());
-    mr_storage.resize(aligned_len_mr, 0);
-            
-    let aligned_len_ml = align_up(ml_storage.len());
-    ml_storage.resize(aligned_len_ml, 0);
     
     // saving the pointer to node-related offset packages into the node itself
 
