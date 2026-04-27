@@ -17,6 +17,13 @@ pub(crate) fn align_up(size: usize) -> usize {
     let mask = ALIGNMENT - 1;
     (size + mask) & !mask
 }
+#[inline]
+pub(crate) fn align_up_turbo(addr: usize, size: usize) -> usize {
+    let mask = ALIGNMENT - 1;
+    let phend: usize = (addr + size + mask) & !mask;
+
+    phend - addr
+}
 
 pub(crate) const RANGESIZE: usize = 52 * 51 / 2;
 pub(crate) const BLANK_NLR: [f32; RANGESIZE] = [0.0; RANGESIZE];
