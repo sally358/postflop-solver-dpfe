@@ -291,7 +291,7 @@ mod tests {
         let mut game = PostFlopGame::with_config(card_config, action_tree).unwrap();
 
         game.allocate_memory(false);
-        finalize(&mut game);
+        finalize::<PostFlopPair>(&mut game);
 
         // save
         save_data_to_file(&game, "", "tmpfile.flop", None).unwrap();
