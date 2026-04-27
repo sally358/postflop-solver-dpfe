@@ -516,9 +516,19 @@ where
         };
         
         // node-locking
-        let end_range = node.my_end_range(&*game);
-        let end_limit = node.my_end_limit(&*game);
-        apply_locking_strategy(&mut strategy, &end_range, &end_limit);
+
+        let boni = node.my_boni();
+
+        let mut end_range_owned = node.my_end_range(game);
+        let mut end_limit_owned = node.my_end_limit(game);
+
+        end_range_owned = game.cut_them_locks(end_range_owned, &boni, player);
+        end_limit_owned = game.cut_them_locks(end_limit_owned, &boni, player);
+        
+        let end_range: &mut [f32] = &mut end_range_owned;
+        let end_limit: &mut [i8] = &mut end_limit_owned;
+
+        apply_locking_strategy(&mut strategy, end_range, end_limit);
 
         // sum up the counterfactual values
         let mut cfv_actions = cfv_actions.lock();
@@ -562,9 +572,17 @@ where
         };
 
         // node-locking
-        let end_range = node.my_end_range(&*game);
-        let end_limit = node.my_end_limit(&*game);
-        apply_locking_strategy(&mut cfreach_actions, &end_range, &end_limit);
+        let boni = node.my_boni();
+
+        let mut end_range_owned = node.my_end_range(game);
+        let mut end_limit_owned = node.my_end_limit(game);
+
+        end_range_owned = game.cut_them_locks(end_range_owned, &boni, player);
+        end_limit_owned = game.cut_them_locks(end_limit_owned, &boni, player);
+        
+        let end_range: &mut [f32] = &mut end_range_owned;
+        let end_limit: &mut [i8] = &mut end_limit_owned;
+        apply_locking_strategy(&mut cfreach_actions, end_range, end_limit);
 
         // update the reach probabilities
         let row_size = cfreach.len();
@@ -739,9 +757,18 @@ where
         };
         
         // node-locking
-        let end_range = node.my_end_range(&*game);
-        let end_limit = node.my_end_limit(&*game);
-        apply_locking_strategy(&mut cfreach_actions, &end_range, &end_limit);
+        let boni = node.my_boni();
+
+        let mut end_range_owned = node.my_end_range(game);
+        let mut end_limit_owned = node.my_end_limit(game);
+
+        end_range_owned = game.cut_them_locks(end_range_owned, &boni, player);
+        end_limit_owned = game.cut_them_locks(end_limit_owned, &boni, player);
+        
+        let end_range: &mut [f32] = &mut end_range_owned;
+        let end_limit: &mut [i8] = &mut end_limit_owned;
+
+        apply_locking_strategy(&mut cfreach_actions, end_range, end_limit);
 
         // update the reach probabilities
         let row_size = cfreach.len();
