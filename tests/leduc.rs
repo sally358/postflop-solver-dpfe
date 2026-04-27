@@ -159,6 +159,11 @@ impl Game for LeducGame {
     fn is_compression_enabled(&self) -> bool {
         self.is_compression_enabled
     }
+
+    #[inline]
+    fn cut_them_locks<T>(&self, locks: Vec<T>, boni: &Vec<u8>) -> Vec<T> {
+        lockss
+    }
 }
 
 impl LeducGame {
@@ -465,6 +470,12 @@ impl GameNode for LeducNode {
 
     fn my_end_limit(&self) -> Vec<i8> {
         vec![1, 6]
+    }
+
+    #[inline]
+    fn my_boni(&self) -> Vec<u8>
+    {
+        vec![] as Vec<u8> // no boni
     }
 }
 
