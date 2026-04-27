@@ -619,6 +619,10 @@ impl PostFlopGame {
         self.storage2 = Vec::new();
         self.storage_ip = Vec::new();
         self.storage_chance = Vec::new();
+        self.rstorage = MutexLike::new(Vec::new());
+        self.lstorage = MutexLike::new(Vec::new());
+        self.mrstorage = MutexLike::new(Vec::new());
+        self.mlstorage = MutexLike::new(Vec::new());
     }
 
     /// Counts the number of nodes in the game tree.
@@ -1559,20 +1563,14 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
         {
             let range_bytes = unsafe {
                 std::slice::from_raw_parts(
-                    end_range.as_ptr() as *const u8, 
-                    size_of::<[f32; RANGESIZE]>())
+                    end_range.as_ptr(), 
+                    RANGESIZE)
             };
             let limit_bytes = unsafe {
                 std::slice::from_raw_parts(
-                    end_limit.as_ptr() as *const u8, 
-                    size_of::<[i8; RANGESIZE]>()) // seethe
+                    end_limit.as_ptr(), 
+                    RANGESIZE) // seethe
             };
-
-            let aligned_len_r = align_up_turbo(r_storage.as_ptr().addr(), r_storage.len());
-            r_storage.resize(aligned_len_r, 0);
-
-            let aligned_len_l = align_up_turbo(l_storage.as_ptr().addr(), l_storage.len());
-            l_storage.resize(aligned_len_l, 0);
 
             let r_loc = r_storage.len();
             let l_loc = l_storage.len();
@@ -1590,18 +1588,18 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
     let memrange_bytes = unsafe {
         std::slice::from_raw_parts(
-            mr_data.as_ptr() as *const u8, 
-            size_of::<u32>() * mr_data.len())
+            mr_data.as_ptr(), 
+            mr_data.len())
     };
     let memlimit_bytes = unsafe {
         std::slice::from_raw_parts(
-            ml_data.as_ptr() as *const u8, 
-            size_of::<u32>() * ml_data.len()) // seethe
+            ml_data.as_ptr(), 
+            ml_data.len())
     };
 
     let aligned_len_mr = align_up_turbo(mr_storage.as_ptr().addr(), mr_storage.len());
     mr_storage.resize(aligned_len_mr, 0);
-            
+
     let aligned_len_ml = align_up_turbo(ml_storage.as_ptr().addr(), ml_storage.len());
     ml_storage.resize(aligned_len_ml, 0);
 
