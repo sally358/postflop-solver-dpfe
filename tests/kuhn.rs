@@ -251,12 +251,12 @@ impl GameNode for KuhnNode {
         &mut self.storage
     }
 
-    fn my_end_range(&self) -> &[f32] {
-        &[0.0 as f32; 3]
+    fn my_end_range(&self) -> Vec<f32> {
+        vec![0.0 as f32; 3]
     }
 
-    fn my_end_limit(&self) -> &[i8] {
-        &[1 as i8; 3]
+    fn my_end_limit(&self) -> Vec<i8> {
+        vec![1 as i8; 3]
     }
 }
 
