@@ -836,7 +836,18 @@ impl PostFlopGame {
             normalized_strategy(node.strategy(), num_actions)
         };
 
-        apply_locking_strategy(&mut ret, node.my_end_range(), node.my_end_limit());
+        let boni = node.my_boni();
+
+        let mut end_range_owned = node.my_end_range(self);
+        let mut end_limit_owned = node.my_end_limit(self);
+
+        end_range_owned = self.cut_them_locks(end_range_owned, &boni, player);
+        end_limit_owned = self.cut_them_locks(end_limit_owned, &boni, player);
+        
+        let end_range: &mut [f32] = &mut end_range_owned;
+        let end_limit: &mut [i8] = &mut end_limit_owned;
+
+        apply_locking_strategy(&mut ret, end_range, end_limit);
 
         ret.chunks_exact_mut(num_hands).for_each(|chunk| {
             self.apply_swap(chunk, player, false);
