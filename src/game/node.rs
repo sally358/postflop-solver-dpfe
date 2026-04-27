@@ -221,7 +221,7 @@ impl GameNode for PostFlopNode {
         for i in 0..self.num_actions()
         {
             let raw_offset = m_slice[i];
-            let normal_ptr = unsafe { game.rstorage.as_ptr().offset(raw_offset as isize) } as *mut f32;
+            let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut f32;
 
             let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
@@ -246,7 +246,7 @@ impl GameNode for PostFlopNode {
         for i in 0..self.num_actions()
         {
             let raw_offset = m_slice[i];
-            let normal_ptr = unsafe { game.rstorage.as_ptr().offset(raw_offset as isize) } as *mut i8;
+            let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut i8;
 
             let slice: &[i8] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
