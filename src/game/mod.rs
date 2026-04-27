@@ -103,11 +103,11 @@ pub struct PostFlopGame {
     storage_ip: Vec<u8>,
     storage_chance: Vec<u8>,
 
-    rstorage: MutexLike<Vec<u8>>, // nodelocking range game storage
-    lstorage: MutexLike<Vec<u8>>, // nodelocking limit game storage
+    rstorage: MutexLike<Vec<f32>>, // nodelocking range game storage
+    lstorage: MutexLike<Vec<i8>>, // nodelocking limit game storage
 
-    mrstorage: MutexLike<Vec<u8>>, // packages of range offsets
-    mlstorage: MutexLike<Vec<u8>>, // packages of limit offsets
+    mrstorage: MutexLike<Vec<u32>>, // packages of range offsets
+    mlstorage: MutexLike<Vec<u32>>, // packages of limit offsets
 
     rhashes: MutexLike<Vec<(u64, usize)>>,
     lhashes: MutexLike<Vec<(u64, usize)>>,
@@ -142,8 +142,8 @@ pub struct PostFlopNode {
     is_locked: bool,
 
     // references to offsets for references geez
-    mrstorage: *mut u8,
-    mlstorage: *mut u8,
+    mrstorage: *mut u32,
+    mlstorage: *mut u32,
 
     amount: i32,
     children_offset: u32,
