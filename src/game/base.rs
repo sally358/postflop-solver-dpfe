@@ -2,6 +2,7 @@ use super::*;
 use crate::bunching::*;
 use crate::interface::*;
 use crate::utility::*;
+use crate::card::*;
 use std::mem::{self, MaybeUninit};
 
 #[cfg(feature = "rayon")]
@@ -106,6 +107,42 @@ impl Game for PostFlopGame {
     #[inline]
     fn is_compression_enabled(&self) -> bool {
         self.is_compression_enabled
+    }
+
+    
+    fn cut_them_locks<T>(&self, locks: Vec<T>, boni: &Vec<u8>, player: usize) -> Vec<T> 
+    where
+        T: Copy
+    {
+        let valids;
+
+        if boni.len() > 2
+        {
+            panic!("What the flip! What cards are you adding here?! The board is full!")
+        }
+        else if boni.len() == 2
+        {
+            let v_index = self.isomorphism_card_river[boni[0] as usize][boni[1] as usize] as usize;
+            valids = self.valid_indices_river[v_index].clone()[player].clone();
+        }
+        else if boni.len() == 1
+        {
+            let v_index = self.isomorphism_card_turn[boni[0] as usize] as usize;
+            valids = self.valid_indices_turn[v_index].clone()[player].clone();
+        }
+        else
+        {
+            valids = self.valid_indices_flop.clone()[player].clone();
+        }
+        
+        let mut new_t = vec![] as Vec<T>;
+
+        for valid in valids
+        {
+            new_t.push(locks[valid as usize]);
+        }
+
+        new_t
     }
 }
 
