@@ -109,8 +109,8 @@ pub struct PostFlopGame {
     mrstorage: MutexLike<Vec<u8>>, // packages of range offsets
     mlstorage: MutexLike<Vec<u8>>, // packages of limit offsets
 
-    rhashes: MutexLike<Vec<u64>>,
-    lhashes: MutexLike<Vec<u64>>,
+    rhashes: MutexLike<Vec<(u64, usize)>>,
+    lhashes: MutexLike<Vec<(u64, usize)>>,
 
     locking_strategy: BTreeMap<usize, Vec<f32>>,
 
