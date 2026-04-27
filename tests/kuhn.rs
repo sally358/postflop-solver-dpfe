@@ -118,6 +118,11 @@ impl Game for KuhnGame {
     fn set_solved(&mut self) {
         self.is_solved = true;
     }
+
+    #[inline]
+    fn cut_them_locks<T>(&self, locks: Vec<T>, boni: &Vec<u8>) -> Vec<T> {
+        lockss
+    }
 }
 
 impl KuhnGame {
@@ -257,6 +262,12 @@ impl GameNode for KuhnNode {
 
     fn my_end_limit(&self) -> Vec<i8> {
         vec![1 as i8; 3]
+    }
+
+    #[inline]
+    fn my_boni(&self) -> Vec<u8>
+    {
+        vec![] as Vec<u8> // no boni
     }
 }
 
