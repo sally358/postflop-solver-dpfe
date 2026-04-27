@@ -254,7 +254,13 @@ pub(crate) fn apply_swap<T>(slice: &mut [T], swap_list: &[(u16, u16)]) {
 
 /// Finalizes the solving process.
 #[inline]
-pub fn finalize<T: Game>(game: &mut T) {
+pub fn finalize<T: GamePair>(game: &mut T::G)
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: GameNode<P = T>
+{
+
     if game.is_solved() {
         panic!("Game is already solved");
     }
@@ -266,7 +272,7 @@ pub fn finalize<T: Game>(game: &mut T) {
     // compute the expected values and save them
     for player in 0..2 {
         let mut cfvalues = Vec::with_capacity(game.num_private_hands(player));
-        compute_cfvalue_recursive(
+        compute_cfvalue_recursive::<T>(
             cfvalues.spare_capacity_mut(),
             game,
             &mut game.root(),
@@ -288,16 +294,21 @@ pub fn finalize<T: Game>(game: &mut T) {
 
 /// Computes the exploitability of the current strategy.
 #[inline]
-pub fn compute_exploitability<T: Game>(game: &T) -> f32 {
+pub fn compute_exploitability<T: GamePair>(game: &T::G) -> f32 
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: GameNode<P = T>
+    {
     if !game.is_ready() && !game.is_solved() {
         panic!("Game is not ready");
     }
 
-    let mes_ev = compute_mes_ev(game);
+    let mes_ev = compute_mes_ev::<T>(game);
     if !game.is_raked() {
         (mes_ev[0] + mes_ev[1]) * 0.5
     } else {
-        let current_ev = compute_current_ev(game);
+        let current_ev = compute_current_ev::<T>(game);
         ((mes_ev[0] - current_ev[0]) + (mes_ev[1] - current_ev[1])) * 0.5
     }
 }
@@ -307,7 +318,12 @@ pub fn compute_exploitability<T: Game>(game: &T) -> f32 {
 /// The bias, i.e., (starting pot) / 2, is already subtracted to increase the significant figures.
 /// This treatment makes the return value zero-sum when not raked.
 #[inline]
-pub fn compute_current_ev<T: Game>(game: &T) -> [f32; 2] {
+pub fn compute_current_ev<T: GamePair>(game: &T::G) -> [f32; 2] 
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: GameNode<P = T>
+    {
     if !game.is_ready() && !game.is_solved() {
         panic!("Game is not ready");
     }
@@ -320,7 +336,7 @@ pub fn compute_current_ev<T: Game>(game: &T) -> [f32; 2] {
     let reach = [game.initial_weights(0), game.initial_weights(1)];
 
     for player in 0..2 {
-        compute_cfvalue_recursive(
+        compute_cfvalue_recursive::<T>(
             cfvalues[player].spare_capacity_mut(),
             game,
             &mut game.root(),
@@ -340,7 +356,12 @@ pub fn compute_current_ev<T: Game>(game: &T) -> [f32; 2] {
 /// The bias, i.e., (starting pot) / 2, is already subtracted to increase the significant figures.
 /// Therefore, the average of the return value corresponds to the exploitability value if not raked.
 #[inline]
-pub fn compute_mes_ev<T: Game>(game: &T) -> [f32; 2] {
+pub fn compute_mes_ev<T: GamePair>(game: &T::G) -> [f32; 2] 
+where
+    T: GamePair,
+    <T as GamePair>::G: Game<P = T>,
+    <T as GamePair>::N: GameNode<P = T>
+    {
     if !game.is_ready() && !game.is_solved() {
         panic!("Game is not ready");
     }
@@ -353,7 +374,7 @@ pub fn compute_mes_ev<T: Game>(game: &T) -> [f32; 2] {
     let reach = [game.initial_weights(0), game.initial_weights(1)];
 
     for player in 0..2 {
-        compute_best_cfv_recursive(
+        compute_best_cfv_recursive::<T>(
             cfvalues[player].spare_capacity_mut(),
             game,
             &game.root(),
@@ -370,7 +391,7 @@ pub fn compute_mes_ev<T: Game>(game: &T) -> [f32; 2] {
 /// The recursive helper function for computing the counterfactual values of the given strategy.
 fn compute_cfvalue_recursive<T: GamePair>(
     result: &mut [MaybeUninit<f32>],
-    game: &mut T::G,
+    game: &T::G,
     node: &mut T::N,
     player: usize,
     cfreach: &[f32],
@@ -379,7 +400,7 @@ fn compute_cfvalue_recursive<T: GamePair>(
 where
     T: GamePair,
     <T as GamePair>::G: Game<P = T>,
-    <T as GamePair>::N: Game<P = T>
+    <T as GamePair>::N: GameNode<P = T>
 {
     // terminal node
     if node.is_terminal() {
@@ -412,7 +433,7 @@ where
 
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_cfvalue_recursive(
+            compute_cfvalue_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &mut node.play(action),
@@ -470,7 +491,7 @@ where
     else if node.player() == player {
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_cfvalue_recursive(
+            compute_cfvalue_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &mut node.play(action),
@@ -493,9 +514,11 @@ where
         } else {
             normalized_strategy(node.strategy(), num_actions)
         };
-
+        
         // node-locking
-        apply_locking_strategy(&mut strategy, node.my_end_range(), node.my_end_limit());
+        let end_range = node.my_end_range(&*game);
+        let end_limit = node.my_end_limit(&*game);
+        apply_locking_strategy(&mut strategy, &end_range, &end_limit);
 
         // sum up the counterfactual values
         let mut cfv_actions = cfv_actions.lock();
@@ -515,7 +538,7 @@ where
     // opponent node
     else if num_actions == 1 {
         // simply recurse when the number of actions is one
-        compute_cfvalue_recursive(
+        compute_cfvalue_recursive::<T>(
             result,
             game,
             &mut node.play(0),
@@ -539,7 +562,9 @@ where
         };
 
         // node-locking
-        apply_locking_strategy(&mut cfreach_actions, node.my_end_range(), node.my_end_limit());
+        let end_range = node.my_end_range(&*game);
+        let end_limit = node.my_end_limit(&*game);
+        apply_locking_strategy(&mut cfreach_actions, &end_range, &end_limit);
 
         // update the reach probabilities
         let row_size = cfreach.len();
@@ -549,7 +574,7 @@ where
 
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_cfvalue_recursive(
+            compute_cfvalue_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &mut node.play(action),
@@ -588,7 +613,7 @@ fn compute_best_cfv_recursive<T: GamePair>(
 where
     T: GamePair,
     <T as GamePair>::G: Game<P = T>,
-    <T as GamePair>::N: Game<P = T>
+    <T as GamePair>::N: GameNode<P = T>
 {
     // terminal node
     if node.is_terminal() {
@@ -602,7 +627,7 @@ where
     // simply recurse when the number of actions is one
     if num_actions == 1 && !node.is_chance() {
         let child = &node.play(0);
-        compute_best_cfv_recursive(result, game, child, player, cfreach);
+        compute_best_cfv_recursive::<T>(result, game, child, player, cfreach);
         return;
     }
 
@@ -628,7 +653,7 @@ where
 
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_best_cfv_recursive(
+            compute_best_cfv_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &node.play(action),
@@ -674,7 +699,7 @@ where
     else if node.player() == player {
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_best_cfv_recursive(
+            compute_best_cfv_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &node.play(action),
@@ -686,15 +711,15 @@ where
         let mut cfv_actions = cfv_actions.lock();
         unsafe { cfv_actions.set_len(num_actions * num_hands) };
 
-        let endrange = node.my_end_range();
-        let endlimit = node.my_end_limit();
+        let end_range = node.my_end_range(&*game);
+        let end_limit = node.my_end_limit(&*game);
 
-        if endrange == BLANK_NLR && endlimit == BLANK_NLL {
+        if &end_range as &[f32] == BLANK_NLR && &end_limit as &[i8] == BLANK_NLL {
             // just compute element-wise maximum (take the best response)
             max_slices_uninit(result, &cfv_actions);
         } else {
             // when the node is locked
-            max_fma_slices_uninit(result, &cfv_actions, endrange, endlimit);
+            max_fma_slices_uninit(result, &cfv_actions, &end_range, &end_limit);
         }
     }
     // opponent node
@@ -712,9 +737,11 @@ where
         } else {
             normalized_strategy(node.strategy(), num_actions)
         };
-
+        
         // node-locking
-        apply_locking_strategy(&mut cfreach_actions, node.my_end_range(), node.my_end_limit());
+        let end_range = node.my_end_range(&*game);
+        let end_limit = node.my_end_limit(&*game);
+        apply_locking_strategy(&mut cfreach_actions, &end_range, &end_limit);
 
         // update the reach probabilities
         let row_size = cfreach.len();
@@ -724,7 +751,7 @@ where
 
         // compute the counterfactual values of each action
         for_each_child(node, |action| {
-            compute_best_cfv_recursive(
+            compute_best_cfv_recursive::<T>(
                 row_mut(cfv_actions.lock().spare_capacity_mut(), action, num_hands),
                 game,
                 &node.play(action),
