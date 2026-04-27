@@ -11,7 +11,7 @@ pub trait Game: Send + Sync {
 
     /// Returns the root node of game tree.
     #[doc(hidden)]
-    fn root(&self) -> MutexGuardLike<<Self::P as GamePair>::G>;
+    fn root(&self) -> MutexGuardLike<<Self::P as GamePair>::N>;
 
     /// Returns the number of private hands of given player.
     #[doc(hidden)]
@@ -72,6 +72,10 @@ pub trait Game: Send + Sync {
     fn is_compression_enabled(&self) -> bool {
         false
     }
+
+    /// Cuts out nodelocking unused cards for postflopgame.
+    #[doc(hidden)]
+    fn cut_them_locks<T>(&self, locks: Vec<T>, boni: &Vec<u8>, player: usize) -> Vec<T> where T: Copy;
 }
 
 /// The trait representing a node in game tree.
@@ -297,6 +301,10 @@ pub trait GameNode: Send + Sync {
     // returns nodelocking limit
     #[doc(hidden)]
     fn my_end_limit(&self, game: &<Self::P as GamePair>::G) -> Vec<i8>;
+
+    // gets board cards as vec
+    #[doc(hidden)]
+    fn my_boni(&self) -> Vec<u8>;
     
 }
 
