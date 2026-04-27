@@ -591,6 +591,9 @@ impl PostFlopGame {
         self.num_storage = info.num_storage;
         self.num_storage_ip = info.num_storage_ip;
         self.num_storage_chance = info.num_storage_chance;
+
+        self.lock_them_nodes(&buffer);
+
         self.misc_memory_usage = self.memory_usage_internal();
 
         Ok(())
@@ -670,6 +673,11 @@ impl PostFlopGame {
         memory_usage += vec_memory_usage(&self.isomorphism_ref_turn);
         memory_usage += vec_memory_usage(&self.isomorphism_card_turn);
         memory_usage += vec_memory_usage(&self.isomorphism_ref_river);
+
+        memory_usage += vec_memory_usage(unsafe {self.rstorage.yoink()});
+        memory_usage += vec_memory_usage(unsafe {self.lstorage.yoink()});
+        memory_usage += vec_memory_usage(unsafe {self.mrstorage.yoink()});
+        memory_usage += vec_memory_usage(unsafe {self.mlstorage.yoink()});
 
         for refs in &self.isomorphism_ref_river {
             memory_usage += vec_memory_usage(refs);
