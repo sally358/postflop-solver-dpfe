@@ -236,6 +236,9 @@ impl Decode for PostFlopGame {
             game.storage_chance = vec![0; (num_bytes * game.num_storage_chance) as usize];
         }
 
+        let mut r_storage = game.rstorage.lock();
+        let mut l_storage = game.lstorage.lock();
+
         // store base pointers
         PTR_BASE_MUT.with(|c| {
             if game.state >= State::MemoryAllocated {
@@ -243,8 +246,8 @@ impl Decode for PostFlopGame {
                     game.storage1.as_mut_ptr(),
                     game.storage2.as_mut_ptr(),
                     game.storage_ip.as_mut_ptr(),
-                    unsafe {game.rstorage.yoink().as_mut_ptr()},
-                    unsafe {game.lstorage.yoink().as_mut_ptr()}
+                    r_storage.as_mut_ptr(),
+                    l_storage.as_mut_ptr()
                 ]);
             } else {
                 c.set([ptr::null_mut(); 5]);
