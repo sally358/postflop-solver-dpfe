@@ -223,6 +223,10 @@ impl GameNode for PostFlopNode {
             let raw_offset = m_slice[i];
             let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut f32;
 
+            assert!(!normal_ptr.is_null(), "normal pointer is null! Yuck!");
+            println!("gahh {}", unsafe{ *normal_ptr });
+            println!("addr {:p}", normal_ptr);
+
             let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
             r_vec.extend_from_slice(slice);
