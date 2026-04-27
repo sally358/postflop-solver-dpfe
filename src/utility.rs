@@ -19,10 +19,9 @@ pub(crate) fn align_up(size: usize) -> usize {
 }
 #[inline]
 pub(crate) fn align_up_turbo(addr: usize, size: usize) -> usize {
-    let mask = ALIGNMENT - 1;
-    let phend: usize = (addr + size + mask) & !mask;
+    let byteshit: usize = ALIGNMENT - ((addr + size) % ALIGNMENT);
 
-    phend - addr
+    size + byteshit
 }
 
 pub(crate) const RANGESIZE: usize = 52 * 51 / 2;
