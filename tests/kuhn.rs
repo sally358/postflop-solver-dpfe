@@ -13,7 +13,11 @@ struct KuhnNode {
     amount: i32,
     children: Vec<(Action, MutexLike<KuhnNode>)>,
     strategy: Vec<f32>,
-    storage: Vec<f32>,
+    storage: Vec<f32>
+}
+
+struct KuhnPair {
+
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -37,8 +41,13 @@ const PLAYER_MASK: usize = 0xff;
 const PLAYER_TERMINAL_FLAG: usize = 0x100;
 const PLAYER_FOLD_FLAG: usize = 0x300;
 
+impl GamePair for KuhnPair {
+    type G = KuhnGame;
+    type N = KuhnNode;
+}
+
 impl Game for KuhnGame {
-    type Node = KuhnNode;
+    type P = KuhnPair;
 
     #[inline]
     fn root(&self) -> MutexGuardLike<Self::Node> {
@@ -127,7 +136,7 @@ impl KuhnGame {
             amount: 1,
             children: Vec::new(),
             strategy: Default::default(),
-            storage: Default::default(),
+            storage: Default::default()
         };
         Self::build_tree_recursive(&mut root, Action::None);
         Self::allocate_memory_recursive(&mut root);
@@ -159,7 +168,7 @@ impl KuhnGame {
                     amount: node.amount + (*action == Action::Call) as i32,
                     children: Vec::new(),
                     strategy: Default::default(),
-                    storage: Default::default(),
+                    storage: Default::default()
                 }),
             ));
         }
@@ -185,6 +194,8 @@ impl KuhnGame {
 }
 
 impl GameNode for KuhnNode {
+    type P = KuhnPair;
+
     #[inline]
     fn is_terminal(&self) -> bool {
         self.player & PLAYER_TERMINAL_FLAG != 0
@@ -238,6 +249,14 @@ impl GameNode for KuhnNode {
     #[inline]
     fn cfvalues_mut(&mut self) -> &mut [f32] {
         &mut self.storage
+    }
+
+    fn my_end_range(&self) -> &[f32] {
+        &[0.0 as f32; 3]
+    }
+
+    fn my_end_limit(&self) -> &[i8] {
+        &[1 as i8; 3]
     }
 }
 
