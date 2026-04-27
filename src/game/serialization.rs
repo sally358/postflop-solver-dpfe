@@ -271,7 +271,7 @@ impl Decode for PostFlopGame {
         // restore the counterfactual values
         if game.storage_mode == BoardState::River && game.state == State::Solved {
             game.state = State::MemoryAllocated;
-            finalize(&mut game);
+            finalize::<PostFlopPair>(&mut game);
         }
 
         Ok(game)
