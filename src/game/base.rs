@@ -1568,10 +1568,10 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                     size_of::<[i8; RANGESIZE]>()) // seethe
             };
 
-            let aligned_len_r = align_up(r_storage.len());
+            let aligned_len_r = align_up_turbo(r_storage.as_ptr().addr(), r_storage.len());
             r_storage.resize(aligned_len_r, 0);
 
-            let aligned_len_l = align_up(l_storage.len());
+            let aligned_len_l = align_up_turbo(l_storage.as_ptr().addr(), l_storage.len());
             l_storage.resize(aligned_len_l, 0);
 
             let r_loc = r_storage.len();
@@ -1599,10 +1599,10 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
             size_of::<u32>() * ml_data.len()) // seethe
     };
 
-    let aligned_len_mr = align_up(mr_storage.len());
+    let aligned_len_mr = align_up_turbo(mr_storage.as_ptr().addr(), mr_storage.len());
     mr_storage.resize(aligned_len_mr, 0);
             
-    let aligned_len_ml = align_up(ml_storage.len());
+    let aligned_len_ml = align_up_turbo(ml_storage.as_ptr().addr(), ml_storage.len());
     ml_storage.resize(aligned_len_ml, 0);
 
     
