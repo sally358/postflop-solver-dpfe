@@ -157,6 +157,8 @@ impl Encode for PostFlopGame {
             self.mlstorage.yoink().encode(encoder);
         }
 
+        println!("encode: mrstorage len: {}", self.mrstorage.len());
+
         let num_nodes = match self.target_storage_mode {
             BoardState::Flop => self.num_nodes[0] as usize,
             BoardState::Turn => (self.num_nodes[0] + self.num_nodes[1]) as usize,
@@ -228,6 +230,8 @@ impl Decode for PostFlopGame {
             locking_strategy: Decode::decode(decoder)?,
             ..Default::default()
         };
+        
+        println!("decode: mrstorage len: {}", self.mrstorage.len());
 
         game.target_storage_mode = game.storage_mode;
         if game.storage_mode == BoardState::River && game.state >= State::MemoryAllocated {
