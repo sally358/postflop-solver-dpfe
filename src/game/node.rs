@@ -213,7 +213,8 @@ impl GameNode for PostFlopNode {
 
         let mr_storage = unsafe { game.mrstorage.yoink() };
 
-        assert!(!self.mstorage_offset == u32::MAX, "mstorage_offset looking pretty undefined today");
+        println!("my_end_range: offset: {}", self.mstorage_offset);
+        assert!(!self.mstorage_offset != u32::MAX, "mstorage_offset looking pretty undefined today");
 
         if VERBOSE { println!("my_end_range: Initializing pointer getting sequence"); }
 
@@ -259,8 +260,8 @@ impl GameNode for PostFlopNode {
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         let ml_storage = unsafe { game.mlstorage.yoink() };
-
-        assert!(!self.mstorage_offset == u32::MAX, "mstorage_offset looking pretty undefined today");
+        
+        assert!(self.mstorage_offset != u32::MAX, "mstorage_offset looking pretty undefined today");
 
         if VERBOSE { println!("my_end_limit: Initializing pointer getting sequence"); }
 
