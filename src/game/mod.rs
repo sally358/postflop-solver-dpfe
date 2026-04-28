@@ -141,9 +141,8 @@ pub struct PostFlopNode {
     river: Card,
     is_locked: bool,
 
-    // references to offsets for references geez
-    mrstorage: *mut u32,
-    mlstorage: *mut u32,
+    // offsets to offsets
+    mstorage_offset: u32,
 
     amount: i32,
     children_offset: u32,
