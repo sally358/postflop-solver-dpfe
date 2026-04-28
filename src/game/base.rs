@@ -569,6 +569,7 @@ impl PostFlopGame {
             .map(|_| MutexLike::new(PostFlopNode::default()))
             .collect::<Vec<_>>();
         self.clear_storage();
+        self.clear_locks();
 
         let mut info = BuildTreeInfo {
             turn_index: num_nodes[0] as usize,
@@ -619,6 +620,10 @@ impl PostFlopGame {
         self.storage2 = Vec::new();
         self.storage_ip = Vec::new();
         self.storage_chance = Vec::new();
+    }
+
+    #[inline]
+    fn clear_locks(&mut self) {
         self.rstorage = MutexLike::new(Vec::new());
         self.lstorage = MutexLike::new(Vec::new());
         self.mrstorage = MutexLike::new(Vec::new());
