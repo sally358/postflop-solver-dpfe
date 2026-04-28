@@ -153,8 +153,8 @@ impl Encode for PostFlopGame {
         unsafe {
             self.rstorage.yoink().encode(encoder);
             self.lstorage.yoink().encode(encoder);
-            self.mrstorage.yoink()[0..num_storage[4]].encode(encoder);
-            self.mlstorage.yoink()[0..num_storage[4]].encode(encoder);
+            self.mrstorage.yoink().encode(encoder);
+            self.mlstorage.yoink().encode(encoder);
         }
 
         let num_nodes = match self.target_storage_mode {
@@ -221,8 +221,10 @@ impl Decode for PostFlopGame {
             storage2: Decode::decode(decoder)?,
             storage_ip: Decode::decode(decoder)?,
             storage_chance: Decode::decode(decoder)?,
-            lstorage: MutexLike::new(Decode::decode(decoder)?),
             rstorage: MutexLike::new(Decode::decode(decoder)?),
+            lstorage: MutexLike::new(Decode::decode(decoder)?),
+            mrstorage: MutexLike::new(Decode::decode(decoder)?),
+            mlstorage: MutexLike::new(Decode::decode(decoder)?),
             locking_strategy: Decode::decode(decoder)?,
             ..Default::default()
         };
