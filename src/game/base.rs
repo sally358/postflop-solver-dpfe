@@ -769,7 +769,7 @@ impl PostFlopGame {
             push_nodelocks(&mut node, self, p_actions);
         }
 
-        println!(self.mr_storage.yoink().len());
+        println!("lock_them_nodes: {}", unsafe { self.mrstorage.yoink().len() });
     }
 
     /// Pushes the chance actions to the `node`.
