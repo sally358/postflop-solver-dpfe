@@ -122,15 +122,11 @@ impl Game for PostFlopGame {
         }
         else if boni.len() == 2
         {
-            println!("{:?}", boni[0]);
-            println!("{:?}", boni[1]);
-            let v_index = self.isomorphism_card_river[boni[0] as usize][boni[1] as usize] as usize;
-            valids = self.valid_indices_river[v_index].clone()[player].clone();
+            valids = self.valid_indices_river[card_pair_to_index(boni[0], boni[1])][player].clone();
         }
         else if boni.len() == 1
         {
-            let v_index = self.isomorphism_card_turn[boni[0] as usize] as usize;
-            valids = self.valid_indices_turn[v_index].clone()[player].clone();
+            valids = self.valid_indices_turn[boni[0] as usize][player].clone();
         }
         else
         {
