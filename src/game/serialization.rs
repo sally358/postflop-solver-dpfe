@@ -231,7 +231,7 @@ impl Decode for PostFlopGame {
             ..Default::default()
         };
         
-        println!("decode: mrstorage len: {}", unsafe { self.mrstorage.yoink().len() } );
+        println!("decode: mrstorage len: {}", unsafe { game.mrstorage.yoink().len() } );
 
         game.target_storage_mode = game.storage_mode;
         if game.storage_mode == BoardState::River && game.state >= State::MemoryAllocated {
