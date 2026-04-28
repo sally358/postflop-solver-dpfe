@@ -208,42 +208,45 @@ impl GameNode for PostFlopNode {
 
     fn my_end_range(&self, game: &PostFlopGame) -> Vec<f32>
     {
+        const VERBOSE: bool = true;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         assert!(!self.mrstorage.is_null(), "mrstorage pointer is null! Yuck!");
 
-        println!("Initializing pointer getting sequence");
+        if VERBOSE { println!("my_end_range: Initializing pointer getting sequence"); }
 
         let m_ptr = self.mrstorage;
 
-        println!("target acquired");
+        if VERBOSE { println!("my_end_range: target acquired"); }
 
         let m_slice: &[u32] = unsafe {slice::from_raw_parts(m_ptr, self.num_actions())};
         let mut r_vec: Vec<f32> = vec![];
 
-        println!("slice received");
+        if VERBOSE { println!("my_end_range: slice received"); }
+        
+        if VERBOSE { println!("my_end_range: slice-contained data: {:?}", m_slice); }
 
         for i in 0..self.num_actions()
         {
-            println!("initializing offset capture protocol");
+            if VERBOSE { println!("initializing offset capture protocol"); }
 
             let raw_offset = m_slice[i];
             let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut f32;
 
-            println!("float coordinates discovered, proceeding with slice capture");
+            if VERBOSE { println!("my_end_range: float coordinates discovered, proceeding with slice capture"); }
 
             assert!(!normal_ptr.is_null(), "normal pointer is null! Yuck!");
 
             let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
-            println!("slice successfully captured, transferring it into containment vector");
+            if VERBOSE { println!("my_end_range: slice successfully captured, transferring it into containment vector"); }
 
             r_vec.extend_from_slice(slice);
 
-            println!("transfer finished");
+            if VERBOSE { println!("my_end_range: transfer finished"); }
         }
 
-        println!("mission accomplished");
+        if VERBOSE { println!("my_end_range: mission accomplished"); }
 
         r_vec
     }
