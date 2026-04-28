@@ -569,7 +569,6 @@ impl PostFlopGame {
             .map(|_| MutexLike::new(PostFlopNode::default()))
             .collect::<Vec<_>>();
         self.clear_storage();
-        self.clear_locks();
 
         let mut info = BuildTreeInfo {
             turn_index: num_nodes[0] as usize,
