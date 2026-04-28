@@ -1513,7 +1513,7 @@ impl PostFlopGame {
 
 fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, p_actions: Vec<PackagedAction>)
 {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     if VERBOSE { println!("push_nodelocks: Starting packing it up!"); }
 
@@ -1590,19 +1590,16 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
     
     // saving the offset packages into mem megastorages
 
-    let mr_loc = mr_storage.len();
-    let ml_loc = ml_storage.len();
+    let m_loc = mr_storage.len(); // they will be exactly the same due to how antipairs are implemented
     
-    if VERBOSE { println!("my_end_range: mr_data: {:?}", mr_loc); }
-    if VERBOSE { println!("my_end_range: ml_data: {:?}", ml_loc); }
+    if VERBOSE { println!("my_end_range: m_loc: {:?}", m_loc); }
 
     mr_storage.extend(mr_data);
     ml_storage.extend(ml_data);
     
     // saving the pointer to node-related offset packages into the node itself
 
-    node.mrstorage = unsafe {mr_storage.as_mut_ptr().add(mr_loc)}; // why am i storing them as pointers instead of offsets here? still gonna debug just in case 
-    node.mlstorage = unsafe {ml_storage.as_mut_ptr().add(ml_loc)};
+    node.mstorage_offset = m_loc as u32; // the previous ver was a terrible idea 
     
     if VERBOSE { println!("push_nodelocks: Finished here"); }
     
