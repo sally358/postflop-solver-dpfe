@@ -87,20 +87,17 @@ impl PostFlopGame {
 
                 let offset = unsafe { node.storage1.offset_from(self.storage1.as_ptr()) };
                 let offset_ip = unsafe { node.storage3.offset_from(self.storage_ip.as_ptr()) };
-                let offset_mr = unsafe { node.mrstorage.offset_from(self.mrstorage.yoink().as_ptr()) };
-                let offset_ml = unsafe { node.mlstorage.offset_from(self.mlstorage.yoink().as_ptr()) };
+                let offset_m = node.mstorage_offset;
 
                 let len = num_bytes * node.num_elements as usize;
                 let len_ip = num_bytes * node.num_elements_ip as usize;
                 
-                let len_mr = 32 * node.num_actions();
-                let len_ml = 32 * node.num_actions();
+                let len_m = node.num_actions();
                 
                 num_storage[0] = offset as usize + len;
                 num_storage[1] = offset as usize + len;
                 num_storage[2] = offset_ip as usize + len_ip;
-                num_storage[3] = offset_mr as usize + len_mr;
-                num_storage[4] = offset_ml as usize + len_ml;
+                num_storage[4] = offset_m as usize + len_m;
             }
 
             if num_storage[3] == 0 && node.is_chance() {
@@ -154,8 +151,10 @@ impl Encode for PostFlopGame {
         self.storage_chance[0..num_storage[3]].encode(encoder)?;
         
         unsafe {
-            self.rstorage.yoink()[0..num_storage[4]].encode(encoder);
-            self.lstorage.yoink()[0..num_storage[5]].encode(encoder);
+            self.rstorage.yoink().encode(encoder);
+            self.lstorage.yoink().encode(encoder);
+            self.mrstorage.yoink()[0..num_storage[4]].encode(encoder);
+            self.mlstorage.yoink()[0..num_storage[4]].encode(encoder);
         }
 
         let num_nodes = match self.target_storage_mode {
@@ -289,6 +288,7 @@ impl Encode for PostFlopNode {
         self.turn.encode(encoder)?;
         self.river.encode(encoder)?;
         self.is_locked.encode(encoder)?;
+        self.mstorage_offset.encode(encoder)?;
         self.amount.encode(encoder)?;
         self.children_offset.encode(encoder)?;
         self.num_children.encode(encoder)?;
@@ -310,8 +310,6 @@ impl Encode for PostFlopNode {
                 unsafe {
                     self.storage1.offset_from(bases[0]).encode(encoder)?;
                     self.storage3.offset_from(bases[1]).encode(encoder)?;
-                    self.mrstorage.offset_from(bases[2] as *mut u32).encode(encoder)?;
-                    self.mlstorage.offset_from(bases[3] as *mut u32).encode(encoder)?;
                 }
             }
         }
@@ -329,6 +327,7 @@ impl Decode for PostFlopNode {
             turn: Decode::decode(decoder)?,
             river: Decode::decode(decoder)?,
             is_locked: Decode::decode(decoder)?,
+            mstorage_offset: Decode::decode(decoder)?,
             amount: Decode::decode(decoder)?,
             children_offset: Decode::decode(decoder)?,
             num_children: Decode::decode(decoder)?,
@@ -353,14 +352,10 @@ impl Decode for PostFlopNode {
             if !bases[0].is_null() {
                 let offset = isize::decode(decoder)?;
                 let offset_ip = isize::decode(decoder)?;
-                let offset_mr = isize::decode(decoder)?;
-                let offset_ml = isize::decode(decoder)?;
 
                 node.storage1 = unsafe { bases[0].offset(offset) };
                 node.storage2 = unsafe { bases[1].offset(offset) };
                 node.storage3 = unsafe { bases[2].offset(offset_ip) };
-                node.mrstorage = unsafe { (bases[3] as *mut u32).offset(offset_mr) };
-                node.mlstorage = unsafe { (bases[3] as *mut u32).offset(offset_ml) };
             }
         }
 
