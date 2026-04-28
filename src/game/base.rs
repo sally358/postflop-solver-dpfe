@@ -1513,6 +1513,10 @@ impl PostFlopGame {
 
 fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, p_actions: Vec<PackagedAction>)
 {
+    const VERBOSE: bool = true;
+
+    if VERBOSE { println!("push_nodelocks: Starting packing it up!"); }
+
     let mut r_storage = game.rstorage.lock();
     let mut l_storage = game.lstorage.lock();
     let mut mr_storage = game.mlstorage.lock();
@@ -1526,6 +1530,8 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
     for mut packaged_action in p_actions
     {
+        if VERBOSE { println!("push_nodelocks: Packing a packaged action"); }
+
         let mut end_range: [f32; RANGESIZE] = [0.0; RANGESIZE];
         let mut end_limit: [i8; RANGESIZE] = [1; RANGESIZE];
 
@@ -1534,12 +1540,15 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
         // THIS IS PROVISIONAL FOR NOW. RULELOCKING WILL BE ADDED HERE.
         (end_range, end_limit) = apply_range(packaged_action, end_range, end_limit);
 
+
         let mut hasher: DefaultHasher;
         let unsigned_range: Vec<u32> = end_range.iter().map(|f| *f as u32).collect();
 
         hasher = DefaultHasher::new();
         unsigned_range.hash(&mut hasher);
         let range_hash = hasher.finish();
+        
+        if VERBOSE { println!("my_end_range: range hash: {:}", range_hash); }
 
         hasher = DefaultHasher::new();
         end_limit.hash(&mut hasher);
@@ -1560,43 +1569,42 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
         if r_loc == -1
         {
-            let range_bytes = unsafe {
-                std::slice::from_raw_parts(
-                    end_range.as_ptr(), 
-                    RANGESIZE)
-            };
-            let limit_bytes = unsafe {
-                std::slice::from_raw_parts(
-                    end_limit.as_ptr(), 
-                    RANGESIZE) // seethe
-            };
-
             let r_loc = r_storage.len();
             let l_loc = l_storage.len();
 
             r_hashes.push((range_hash, r_loc));
             l_hashes.push((limit_hash, l_loc));
 
-            r_storage.extend_from_slice(range_bytes);
-            l_storage.extend_from_slice(limit_bytes);
+            r_storage.extend(end_range);
+            l_storage.extend(end_limit);
         }
 
         mr_data.push(r_loc as u32);
         ml_data.push(l_loc as u32);
+
+        if VERBOSE { println!("push_nodelocks: Action packed"); }
     }
+    
+    if VERBOSE { println!("my_end_range: mr_data: {:?}", mr_data); }
+    if VERBOSE { println!("my_end_range: ml_data: {:?}", ml_data); }
     
     // saving the offset packages into mem megastorages
 
     let mr_loc = mr_storage.len();
     let ml_loc = ml_storage.len();
+    
+    if VERBOSE { println!("my_end_range: mr_data: {:?}", mr_loc); }
+    if VERBOSE { println!("my_end_range: ml_data: {:?}", ml_loc); }
 
     mr_storage.extend(mr_data);
     ml_storage.extend(ml_data);
     
     // saving the pointer to node-related offset packages into the node itself
 
-    node.mrstorage = unsafe {mr_storage.as_mut_ptr().add(mr_loc)};
+    node.mrstorage = unsafe {mr_storage.as_mut_ptr().add(mr_loc)}; // why am i storing them as pointers instead of offsets here? still gonna debug just in case 
     node.mlstorage = unsafe {ml_storage.as_mut_ptr().add(ml_loc)};
+    
+    if VERBOSE { println!("push_nodelocks: Finished here"); }
     
     fn apply_range (p_actions: PackagedAction, mut end_range: [f32; RANGESIZE], mut end_limit: [i8; RANGESIZE]) -> ([f32; RANGESIZE], [i8; RANGESIZE])
     {
