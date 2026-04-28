@@ -1534,12 +1534,11 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
         // THIS IS PROVISIONAL FOR NOW. RULELOCKING WILL BE ADDED HERE.
         (end_range, end_limit) = apply_range(packaged_action, end_range, end_limit);
 
-        let range_bits: Vec<u32> = end_range.iter().map(|f| f.to_bits()).collect();
-
         let mut hasher: DefaultHasher;
+        let unsigned_range: Vec<u32> = end_range.iter().map(|f| *f as u32).collect();
 
         hasher = DefaultHasher::new();
-        range_bits.hash(&mut hasher);
+        unsigned_range.hash(&mut hasher);
         let range_hash = hasher.finish();
 
         hasher = DefaultHasher::new();
@@ -1585,32 +1584,14 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
         mr_data.push(r_loc as u32);
         ml_data.push(l_loc as u32);
     }
-
-    let memrange_bytes = unsafe {
-        std::slice::from_raw_parts(
-            mr_data.as_ptr(), 
-            mr_data.len())
-    };
-    let memlimit_bytes = unsafe {
-        std::slice::from_raw_parts(
-            ml_data.as_ptr(), 
-            ml_data.len())
-    };
-
-    let aligned_len_mr = align_up_turbo(mr_storage.as_ptr().addr(), mr_storage.len());
-    mr_storage.resize(aligned_len_mr, 0);
-
-    let aligned_len_ml = align_up_turbo(ml_storage.as_ptr().addr(), ml_storage.len());
-    ml_storage.resize(aligned_len_ml, 0);
-
     
     // saving the offset packages into mem megastorages
 
     let mr_loc = mr_storage.len();
     let ml_loc = ml_storage.len();
 
-    mr_storage.extend_from_slice(memrange_bytes);
-    ml_storage.extend_from_slice(memlimit_bytes);
+    mr_storage.extend(mr_data);
+    ml_storage.extend(ml_data);
     
     // saving the pointer to node-related offset packages into the node itself
 
