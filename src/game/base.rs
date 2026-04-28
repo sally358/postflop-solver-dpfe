@@ -122,6 +122,8 @@ impl Game for PostFlopGame {
         }
         else if boni.len() == 2
         {
+            println!("{:?}", boni[0]);
+            println!("{:?}", boni[1]);
             let v_index = self.isomorphism_card_river[boni[0] as usize][boni[1] as usize] as usize;
             valids = self.valid_indices_river[v_index].clone()[player].clone();
         }
@@ -547,6 +549,10 @@ impl PostFlopGame {
             self.isomorphism_card_river,
             self.isomorphism_swap_river,
         ) = self.card_config.isomorphism(&self.private_cards);
+
+        
+        println!("{:?}", self.isomorphism_card_turn);
+        println!("{:?}", self.isomorphism_card_river);
     }
 
     /// Initializes the root node of game tree.
@@ -1606,7 +1612,7 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
     // saving the pointer to node-related offset packages into the node itself
 
     node.mstorage_offset = m_loc as u32; // the previous ver was a terrible idea 
-    println!("my_end_range: mstorage offset: {:?}", node.mstorage_offset);
+    // println!("my_end_range: mstorage offset: {:?}", node.mstorage_offset);
     
     if VERBOSE { println!("push_nodelocks: Finished here"); }
     
