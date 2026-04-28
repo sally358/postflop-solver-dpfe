@@ -211,11 +211,13 @@ impl GameNode for PostFlopNode {
         const VERBOSE: bool = true;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.mrstorage.is_null(), "mrstorage pointer is null! Yuck!");
+        let mr_storage = unsafe { game.mrstorage.yoink() };
+
+        assert!(!self.mstorage_offset == u32::MAX, "mstorage_offset looking pretty undefined today");
 
         if VERBOSE { println!("my_end_range: Initializing pointer getting sequence"); }
 
-        let m_ptr = self.mrstorage;
+        let m_ptr = unsafe { mr_storage.as_ptr().add(self.mstorage_offset as usize) };
 
         if VERBOSE { println!("my_end_range: target acquired"); }
 
@@ -228,7 +230,7 @@ impl GameNode for PostFlopNode {
 
         for i in 0..self.num_actions()
         {
-            if VERBOSE { println!("initializing offset capture protocol"); }
+            if VERBOSE { println!("my_end_range: initializing offset capture protocol"); }
 
             let raw_offset = m_slice[i];
             let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut f32;
@@ -253,25 +255,47 @@ impl GameNode for PostFlopNode {
 
     fn my_end_limit(&self, game: &PostFlopGame) -> Vec<i8>
     {
+        const VERBOSE: bool = false;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
-        assert!(!self.mrstorage.is_null(), "mlstorage pointer is null! Yuck!");
+        let ml_storage = unsafe { game.mlstorage.yoink() };
 
-        let raw_m_ptr = self.mrstorage;
-        let normal_m_ptr = raw_m_ptr as *mut u32;
+        assert!(!self.mstorage_offset == u32::MAX, "mstorage_offset looking pretty undefined today");
 
-        let m_slice: &[u32] = unsafe {slice::from_raw_parts(normal_m_ptr, self.num_actions())};
+        if VERBOSE { println!("my_end_limit: Initializing pointer getting sequence"); }
+
+        let m_ptr = unsafe { ml_storage.as_ptr().add(self.mstorage_offset as usize) };
+
+        if VERBOSE { println!("my_end_limit: target acquired"); }
+
+        let m_slice: &[u32] = unsafe {slice::from_raw_parts(m_ptr, self.num_actions())};
         let mut l_vec: Vec<i8> = vec![];
+
+        if VERBOSE { println!("my_end_limit: slice received"); }
+        
+        if VERBOSE { println!("my_end_limit: slice-contained data: {:?}", m_slice); }
 
         for i in 0..self.num_actions()
         {
+            if VERBOSE { println!("my_end_limit: initializing offset capture protocol"); }
+
             let raw_offset = m_slice[i];
-            let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut i8;
+            let normal_ptr = unsafe { game.lstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut i8;
+
+            if VERBOSE { println!("my_end_limit: float coordinates discovered, proceeding with slice capture"); }
+
+            assert!(!normal_ptr.is_null(), "normal pointer is null! Yuck!");
 
             let slice: &[i8] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
+            if VERBOSE { println!("my_end_limit: slice successfully captured, transferring it into containment vector"); }
+
             l_vec.extend_from_slice(slice);
+
+            if VERBOSE { println!("my_end_limit: transfer finished"); }
         }
+
+        if VERBOSE { println!("my_end_limit: mission accomplished"); }
 
         l_vec
     }
@@ -299,8 +323,7 @@ impl Default for PostFlopNode {
             turn: NOT_DEALT,
             river: NOT_DEALT,
             is_locked: false,
-            mrstorage: ptr::null_mut(),
-            mlstorage: ptr::null_mut(),
+            mstorage_offset: u32::MAX,
             amount: 0,
             children_offset: 0,
             num_children: 0,
