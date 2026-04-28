@@ -768,6 +768,8 @@ impl PostFlopGame {
 
             push_nodelocks(&mut node, self, p_actions);
         }
+
+        println!(self.mr_storage.yoink().len());
     }
 
     /// Pushes the chance actions to the `node`.
@@ -1519,8 +1521,8 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
     let mut r_storage = game.rstorage.lock();
     let mut l_storage = game.lstorage.lock();
-    let mut mr_storage = game.mlstorage.lock();
-    let mut ml_storage = game.mrstorage.lock();
+    let mut mr_storage = game.mrstorage.lock();
+    let mut ml_storage = game.mlstorage.lock();
 
     let mut mr_data: Vec<u32> = vec![]; // offsets for the ranges of one specific node
     let mut ml_data: Vec<u32> = vec![]; // same, but for limits
