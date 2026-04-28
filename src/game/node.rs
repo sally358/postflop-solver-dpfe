@@ -212,25 +212,38 @@ impl GameNode for PostFlopNode {
 
         assert!(!self.mrstorage.is_null(), "mrstorage pointer is null! Yuck!");
 
-        let raw_m_ptr = self.mrstorage;
-        let normal_m_ptr = raw_m_ptr as *mut u32;
+        println!("Initializing pointer getting sequence");
 
-        let m_slice: &[u32] = unsafe {slice::from_raw_parts(normal_m_ptr, self.num_actions())};
+        let m_ptr = self.mrstorage;
+
+        println!("target acquired");
+
+        let m_slice: &[u32] = unsafe {slice::from_raw_parts(m_ptr, self.num_actions())};
         let mut r_vec: Vec<f32> = vec![];
+
+        println!("slice received");
 
         for i in 0..self.num_actions()
         {
+            println!("initializing offset capture protocol");
+
             let raw_offset = m_slice[i];
             let normal_ptr = unsafe { game.rstorage.yoink().as_ptr().offset(raw_offset as isize) } as *mut f32;
 
+            println!("float coordinates discovered, proceeding with slice capture");
+
             assert!(!normal_ptr.is_null(), "normal pointer is null! Yuck!");
-            println!("gahh {}", unsafe{ *normal_ptr });
-            println!("addr {:p}", normal_ptr);
 
             let slice: &[f32] = unsafe {slice::from_raw_parts(normal_ptr, RANGE_LEN)};
 
+            println!("slice successfully captured, transferring it into containment vector");
+
             r_vec.extend_from_slice(slice);
+
+            println!("transfer finished");
         }
+
+        println!("mission accomplished");
 
         r_vec
     }
