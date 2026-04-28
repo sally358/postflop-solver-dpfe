@@ -1600,6 +1600,7 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
     // saving the pointer to node-related offset packages into the node itself
 
     node.mstorage_offset = m_loc as u32; // the previous ver was a terrible idea 
+    println!("my_end_range: mstorage offset: {:?}", node.mstorage_offset);
     
     if VERBOSE { println!("push_nodelocks: Finished here"); }
     
