@@ -208,7 +208,7 @@ impl GameNode for PostFlopNode {
 
     fn my_end_range(&self, game: &PostFlopGame) -> Vec<f32>
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         let mr_storage = unsafe { game.mrstorage.yoink() };
@@ -257,7 +257,7 @@ impl GameNode for PostFlopNode {
 
     fn my_end_limit(&self, game: &PostFlopGame) -> Vec<i8>
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         let ml_storage = unsafe { game.mlstorage.yoink() };
