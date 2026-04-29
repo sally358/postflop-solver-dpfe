@@ -767,7 +767,7 @@ impl PostFlopGame {
     // ONE THREAD AT A TIME PLEASE
     fn lock_them_nodes(&self, buffer: &BufferContainer)
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         if VERBOSE { println!("lock_them_nodes: me: {:?}", unsafe { self.mrstorage.yoink() }); }
 
