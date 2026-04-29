@@ -1708,6 +1708,10 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                 println!("apply_range: result range: {:?}", end_range);
             }
         }
+        else if VERBOSE
+        {
+            println!("apply_range: none range found");
+        }
 
         (end_range, end_limit)
     }
