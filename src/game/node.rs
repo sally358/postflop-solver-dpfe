@@ -216,11 +216,12 @@ impl GameNode for PostFlopNode {
             return vec![] as Vec<f32>
         }
 
+        if self.mstorage_offset == 0 { println!("my_end_range: me: {:?}", self); }
+
         let mr_storage = unsafe { game.mrstorage.yoink() };
 
         if VERBOSE { println!("my_end_range: Initializing pointer getting sequence"); }
         if VERBOSE { println!("my_end_range: offset for mr_storage: {}", self.mstorage_offset); }
-        if VERBOSE { println!("my_end_limit: u32 max {}", u32::MAX); }
 
         let m_ptr = unsafe { mr_storage.as_ptr().add(self.mstorage_offset as usize) };
 
@@ -260,7 +261,7 @@ impl GameNode for PostFlopNode {
 
     fn my_end_limit(&self, game: &PostFlopGame) -> Vec<i8>
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         if self.mstorage_offset == u32::MAX
@@ -272,7 +273,6 @@ impl GameNode for PostFlopNode {
 
         if VERBOSE { println!("my_end_limit: Initializing pointer getting sequence"); }
         if VERBOSE { println!("my_end_limit: offset for mr_storage: {}", self.mstorage_offset); }
-        if VERBOSE { println!("my_end_limit: u32 max {}", u32::MAX); }
 
         let m_ptr = unsafe { ml_storage.as_ptr().add(self.mstorage_offset as usize) };
 
