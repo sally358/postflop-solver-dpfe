@@ -767,6 +767,8 @@ impl PostFlopGame {
     // ONE THREAD AT A TIME PLEASE
     fn lock_them_nodes(&self, buffer: &BufferContainer)
     {
+        const VERBOSE: bool = true;
+
         for node_id in 0..self.node_arena.len()
         {
             let p_actions = buffer.package_buffer[node_id].clone();
@@ -775,7 +777,12 @@ impl PostFlopGame {
             push_nodelocks(&mut node, self, p_actions);
         }
 
-        println!("lock_them_nodes: {}", unsafe { self.mrstorage.yoink().len() });
+        if VERBOSE { println!("lock_them_nodes: NODELOCKING DATA"); }
+
+        if VERBOSE { println!("lock_them_nodes: {}", unsafe { self.mrstorage.yoink().len() }); }
+        if VERBOSE { println!("lock_them_nodes: {}", unsafe { self.rstorage.yoink().len() }); }
+
+        if VERBOSE { println!("lock_them_nodes: {:?}", unsafe { self.rstorage.yoink() }); }
     }
 
     /// Pushes the chance actions to the `node`.
@@ -1521,7 +1528,7 @@ impl PostFlopGame {
 
 fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, p_actions: Vec<PackagedAction>)
 {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     if VERBOSE { println!("push_nodelocks: Starting packing it up!"); }
 
