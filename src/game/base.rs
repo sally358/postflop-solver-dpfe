@@ -1638,7 +1638,7 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
             if VERBOSE
             {
-                println!("apply_range: lock range {:p}", p_actions.lock_range);
+                println!("apply_range: lock range {:?}", p_actions.lock_range);
             }
 
             for i in 0..13 { for j in 0..13
