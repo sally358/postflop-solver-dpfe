@@ -1636,9 +1636,9 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
             let lock_range = p_actions.lock_range.unwrap().clone();
             let lock_limit = p_actions.lock_limit.unwrap().clone();
 
-            if lock_range != RANGEEMPTY && VERBOSE
+            if VERBOSE
             {
-                println!("apply_range: non-empty range found");
+                println!("apply_range: lock range {:p}", lock_range);
             }
 
             for i in 0..13 { for j in 0..13
