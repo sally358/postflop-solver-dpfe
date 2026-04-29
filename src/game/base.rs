@@ -767,14 +767,17 @@ impl PostFlopGame {
     // ONE THREAD AT A TIME PLEASE
     fn lock_them_nodes(&self, buffer: &BufferContainer)
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         for node_id in 0..self.node_arena.len()
         {
             let p_actions = buffer.package_buffer[node_id].clone();
             let mut node = self.node_arena[node_id].lock();
-
-            push_nodelocks(&mut node, self, p_actions);
+            
+            if p_actions.len() != 0
+            {
+                push_nodelocks(&mut node, self, p_actions);
+            }
         }
 
         if VERBOSE { println!("lock_them_nodes: NODELOCKING DATA"); }
