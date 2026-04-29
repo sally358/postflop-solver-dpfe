@@ -1591,11 +1591,11 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
 
         if r_loc == -1
         {
-            let r_loc = r_storage.len();
-            let l_loc = l_storage.len();
+            r_loc = r_storage.len() as isize;
+            l_loc = l_storage.len() as isize;
 
-            r_hashes.push((range_hash, r_loc));
-            l_hashes.push((limit_hash, l_loc));
+            r_hashes.push((range_hash, r_loc as usize));
+            l_hashes.push((limit_hash, l_loc as usize));
 
             r_storage.extend(end_range);
             l_storage.extend(end_limit);
