@@ -46,6 +46,7 @@ pub enum Action {
 /// Rules for rulelocking
 #[cfg_attr(feature = "bincode", derive(Decode, Encode))]
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct RuleLock {
     pub rule_type: (u8, u8, u8), // group, criterion, specification
     pub percentage: f32,
@@ -76,6 +77,7 @@ impl From<((u8, u8, u8), f32, i8, i32)> for RuleLock
 /// Action packaged with all sorts of nodelocking stuff
 #[cfg_attr(feature = "bincode", derive(Decode, Encode))]
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct PackagedAction {
     pub(crate) action: Action,
 
