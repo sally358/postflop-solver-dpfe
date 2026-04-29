@@ -1528,7 +1528,7 @@ impl PostFlopGame {
 
 fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame, p_actions: Vec<PackagedAction>)
 {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     if VERBOSE { println!("push_nodelocks: Starting packing it up!"); }
 
