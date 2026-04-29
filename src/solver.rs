@@ -270,7 +270,7 @@ where
         };
 
         // node-locking
-        apply_locking_strategy(&mut strategy, end_range, end_limit);
+        apply_locking_strategy::<T>(&mut strategy, node, game);
 
         // sum up the counterfactual values
         let mut cfv_actions = cfv_actions.lock();
@@ -357,19 +357,7 @@ where
             regret_matching(node.regrets(), num_actions)
         };
 
-        // node-locking
-        let boni = node.my_boni();
-
-        let mut end_range_owned = node.my_end_range(game);
-        let mut end_limit_owned = node.my_end_limit(game);
-
-        end_range_owned = game.cut_them_locks(end_range_owned, &boni, player);
-        end_limit_owned = game.cut_them_locks(end_limit_owned, &boni, player);
-        
-        let end_range: &mut [f32] = &mut end_range_owned;
-        let end_limit: &mut [i8] = &mut end_limit_owned;
-
-        apply_locking_strategy(&mut cfreach_actions, &end_range, &end_limit);
+        apply_locking_strategy::<T>(&mut cfreach_actions, node, game);
 
         // update the reach probabilities
         let row_size = cfreach.len();
