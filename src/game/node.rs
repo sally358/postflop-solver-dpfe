@@ -208,15 +208,13 @@ impl GameNode for PostFlopNode {
 
     fn my_end_range(&self, game: &PostFlopGame) -> Vec<f32>
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const RANGE_LEN: usize = 52 * 51 / 2;
 
         if self.mstorage_offset == u32::MAX
         {
             return vec![] as Vec<f32>
         }
-
-        if self.mstorage_offset == 0 { println!("my_end_range: me: {:?}", self); }
 
         let mr_storage = unsafe { game.mrstorage.yoink() };
 
