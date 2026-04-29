@@ -767,7 +767,7 @@ impl PostFlopGame {
     // ONE THREAD AT A TIME PLEASE
     fn lock_them_nodes(&self, buffer: &BufferContainer)
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         if VERBOSE { println!("lock_them_nodes: me: {:?}", unsafe { self.mrstorage.yoink() }); }
 
@@ -1628,10 +1628,18 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
     
     fn apply_range (p_actions: PackagedAction, mut end_range: [f32; RANGESIZE], mut end_limit: [i8; RANGESIZE]) -> ([f32; RANGESIZE], [i8; RANGESIZE])
     {
+        const VERBOSE: bool = true;
+        const RANGEEMPTY: [f32; 13*13] = [0.0; 13*13];
+
         if !p_actions.lock_range.is_none() 
         {
             let lock_range = p_actions.lock_range.unwrap().clone();
             let lock_limit = p_actions.lock_limit.unwrap().clone();
+
+            if lock_range != RANGEEMPTY && VERBOSE
+            {
+                println!("apply_range: non-empty range found");
+            }
 
             for i in 0..13 { for j in 0..13
             {
@@ -1695,7 +1703,10 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                 end_range[index] = lock_range[i * 13 + j];
             } }
             
-            
+            if lock_range != RANGEEMPTY && VERBOSE
+            {
+                println!("apply_range: result range: {:?}", end_range);
+            }
         }
 
         (end_range, end_limit)
