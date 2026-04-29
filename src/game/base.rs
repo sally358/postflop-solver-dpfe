@@ -767,7 +767,9 @@ impl PostFlopGame {
     // ONE THREAD AT A TIME PLEASE
     fn lock_them_nodes(&self, buffer: &BufferContainer)
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
+
+        if VERBOSE { println!("lock_them_nodes: me: {:?}", unsafe { self.mrstorage.yoink() }); }
 
         for node_id in 0..self.node_arena.len()
         {
@@ -779,6 +781,8 @@ impl PostFlopGame {
                 push_nodelocks(&mut node, self, p_actions);
             }
         }
+
+        if VERBOSE { println!("lock_them_nodes: me: {:?}", unsafe { self.mrstorage.yoink() }); }
 
         if VERBOSE { println!("lock_them_nodes: NODELOCKING DATA"); }
 
