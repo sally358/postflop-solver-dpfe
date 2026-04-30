@@ -115,6 +115,7 @@ impl Game for PostFlopGame {
         T: Copy
     {
         let valids;
+        let action_num = locks.len() / RANGESIZE;
 
         if boni.len() > 2
         {
@@ -134,10 +135,14 @@ impl Game for PostFlopGame {
         }
         
         let mut new_t = vec![] as Vec<T>;
+        let valid_len = valids.len();
 
-        for valid in valids
+        for action in 0..action_num
         {
-            new_t.push(locks[valid as usize]);
+            for valid in valids.clone()
+            {
+                new_t.push(locks[(valid as usize) + action * valid_len]);
+            }
         }
 
         new_t
