@@ -1686,7 +1686,7 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                     {
                         // more nested loopz
 
-                        if suit_i >= suit_j || suit_j > suit_i
+                        if suit_i <= suit_j
                         {
                             continue
                         }
