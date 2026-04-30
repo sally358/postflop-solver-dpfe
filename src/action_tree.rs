@@ -247,6 +247,7 @@ pub struct ActionTree {
     config: TreeConfig,
     added_lines: Vec<Vec<Action>>,
     removed_lines: Vec<Vec<Action>>,
+    locked_lines: Vec<Vec<Action>>, // i am not pulling those recursively so we need to keep track of them somewhere
     root: Box<MutexLike<ActionTreeNode>>,
     history: Vec<Action>,
 }
@@ -439,9 +440,13 @@ impl ActionTree {
             {
                 if current_node.actions[i].action == action
                 {
-                    
                     current_node.actions[i].lock_range = Some(arrange);
                     current_node.actions[i].lock_limit = Some(arrimit);
+
+                    if !self.locked_lines.iter().any(|l| l == line)
+                    {
+                        self.locked_lines.push(line.to_vec());
+                    }
 
                     success = true;
                 }
@@ -538,6 +543,10 @@ impl ActionTree {
             {
                 if current_node.actions[i].action == action
                 {
+                    if !self.locked_lines.iter().any(|l| l == line)
+                    {
+                        self.locked_lines.push(line.to_vec());
+                    }
                     
                     current_node.actions[i].lock_rules = lock_rules;
 
@@ -763,11 +772,36 @@ impl ActionTree {
         self.pull_rule_lock_recursive(&history, 0)
     }
 
+    // apparently i forgor to extract the damn locks and they were never applied, insert deep fried laughing emoji
+    #[inline]
+    pub fn extract_all_locks(&self) -> (Vec<(Vec<Action>, Vec<f32>, Vec<i8>)>, Vec<(Vec<Action>, Vec<RuleLock>)>) {
+        let mut range_locks = Vec::new() as Vec<(Vec<Action>, Vec<f32>, Vec<i8>)>;
+        let mut rule_locks = Vec::new() as Vec<(Vec<Action>, Vec<RuleLock>)>;
+
+        for locked_line in &self.locked_lines
+        {
+            let (range_lock, limit_lock) = self.pull_range_lock_recursive(locked_line, 0);
+            let rule_lock = self.pull_rule_lock_recursive(locked_line, 0);
+
+            if range_lock.is_some() && limit_lock.is_some()
+            {
+                range_locks.push((locked_line.clone(), range_lock.unwrap(), limit_lock.unwrap()));
+            }
+
+            if rule_lock.is_some()
+            {
+                rule_locks.push((locked_line.clone(), rule_lock.unwrap()));
+            }
+        }
+
+        (range_locks, rule_locks)
+    }
+
     
     /*
 
     
-    NODELOCKING PUSH PULL
+    NODELOCKING PUSH PULL end
     
     
     */
