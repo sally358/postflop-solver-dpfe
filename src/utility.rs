@@ -898,12 +898,12 @@ where
             }
             else if *l == -1
             {
+                if VERBOSE { println!("underranging detected"); }
+
                 if *d > *r {*d = *r;}
             }
             else if *l == 1
             {
-                if VERBOSE { println!("underranging detected"); }
-
                 if *d < *r {*d = *r;}
             }
         });
