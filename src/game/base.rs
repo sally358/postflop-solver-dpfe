@@ -1660,6 +1660,8 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                             let card1 = i * 4 + suit_i;
                             let card2 = j * 4 + suit_j;
 
+                            println!("apply_range: offsuit: card1: {:?}, card2: {:?}", card1, card2);
+
                             let index = card_pair_to_index(card1 as Card, card2 as Card);
                             end_range[index] = lock_range[i * 13 + j];
                             end_limit[index] = lock_limit[i * 13 + j];
@@ -1672,6 +1674,8 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                     {
                         let card1 = i * 4 + suit;
                         let card2 = j * 4 + suit;
+
+                        println!("apply_range: suited: card1: {:?}, card2: {:?}", card1, card2);
                         
                         let index = card_pair_to_index(card1 as Card, card2 as Card);
                         end_range[index] = lock_range[i * 13 + j];
@@ -1693,16 +1697,14 @@ fn push_nodelocks (node: &mut MutexGuardLike<PostFlopNode>, game: &PostFlopGame,
                             let card1 = i * 4 + suit_i;
                             let card2 = j * 4 + suit_j;
 
+                            println!("apply_range: pair: card1: {:?}, card2: {:?}", card1, card2);
+
                             let index = card_pair_to_index(card1 as Card, card2 as Card);
                             end_range[index] = lock_range[i * 13 + j];
                             end_limit[index] = lock_limit[i * 13 + j];
                         }
                     }}
                 }
-
-
-                let index = card_pair_to_index(i as Card, j as Card);
-                end_range[index] = lock_range[i * 13 + j];
             } }
             
             if lock_range != RANGEEMPTY && VERBOSE
