@@ -467,7 +467,7 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn pull_range_lock_recursive(&mut self, line: &[Action], index: usize) -> (Option<Vec<f32>>, Option<Vec<i8>>) {
+    pub fn pull_range_lock_recursive(&self, line: &[Action], index: usize) -> (Option<Vec<f32>>, Option<Vec<i8>>) {
         let vine = line.to_vec();
 
         let current_node: MutexGuardLike<ActionTreeNode>;
@@ -569,7 +569,7 @@ impl ActionTree {
     /// - `line` must exist in the current tree.
     /// - Chance actions (i.e., dealing turn and river cards) must be omitted from the `line`.
     #[inline]
-    pub fn pull_rule_lock_recursive(&mut self, line: &[Action], index: usize) -> Option<Vec<RuleLock>> {
+    pub fn pull_rule_lock_recursive(&self, line: &[Action], index: usize) -> Option<Vec<RuleLock>> {
         let mut vine = line.to_vec();
 
         let current_node: MutexGuardLike<ActionTreeNode>;
@@ -744,7 +744,7 @@ impl ActionTree {
     /// Internally, this method calls [`pull_range_lock`] with the current action history, which is only used in this specific method. Optimal? 100%. See
     /// [`pull_range_lock`] for the details.
     #[inline]
-    pub fn pull_range_lock_from_current_node(&mut self) ->  (Option<Vec<f32>>, Option<Vec<i8>>) 
+    pub fn pull_range_lock_from_current_node(&self) ->  (Option<Vec<f32>>, Option<Vec<i8>>) 
     {
         let history = self.history.clone();
         self.pull_range_lock_recursive(&history, 0)
@@ -766,7 +766,7 @@ impl ActionTree {
     /// Internally, this method calls [`pull_rule_lock`] with the current action history, which is only used in this specific method. Optimal? 100%. See
     /// [`pull_rule_lock`] for the details.
     #[inline]
-    pub fn pull_rule_lock_from_current_node(&mut self) ->  Option<Vec<RuleLock>>
+    pub fn pull_rule_lock_from_current_node(&self) ->  Option<Vec<RuleLock>>
     {
         let history = self.history.clone();
         self.pull_rule_lock_recursive(&history, 0)
