@@ -873,6 +873,7 @@ where
     <T as GamePair>::G: Game<P = T>,
     <T as GamePair>::N: GameNode<P = T>
     {
+    const VERBOSE: bool = true;
     
     // node-locking
     let boni = node.my_boni();
@@ -891,6 +892,8 @@ where
         dst.iter_mut().zip(lrange).zip(llimit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
             if *l == 0
             {
+                if VERBOSE { println!("strict ranging detected"); }
+
                 *d = *r;
             }
             else if *l == -1
@@ -899,6 +902,8 @@ where
             }
             else if *l == 1
             {
+                if VERBOSE { println!("underranging detected"); }
+
                 if *d < *r {*d = *r;}
             }
         });
