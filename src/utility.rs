@@ -885,11 +885,11 @@ where
     {
         lrange_owned = game.cut_them_locks(lrange_owned, &boni, node.player());
         llimit_owned = game.cut_them_locks(llimit_owned, &boni, node.player());
-            
+        
+        if VERBOSE { println!("apply_locking_strategy: d & r & t length: {} {} {}", dst.len(), lrange_owned.clone().len(), llimit_owned.clone().len()); }
+        
         let lrange: &mut [f32] = &mut lrange_owned;
         let llimit: &mut [i8] = &mut llimit_owned;
-
-        if VERBOSE { println!("apply_locking_strategy: d & r & t length: {} {} {}", dst.len(), lrange_owned.len(), llimit_owned.len()); }
         
         dst.iter_mut().zip(lrange).zip(llimit).map(|((d, r), l)| (d, r, l)).for_each(|(d, r, l)| {
             if *l == 0
